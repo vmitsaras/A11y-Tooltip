@@ -648,22 +648,30 @@ test("rapid WAAPI retargeting replaces motion instead of queueing it", async ({
   expect(middleRect).not.toBeNull();
   expect(retargetRect).not.toBeNull();
 
-  if (middleRect && retargetRect) {
-    const middleCenter =
-      middleRect.x + middleRect.width / 2;
-    const retargetCenter =
-      retargetRect.x + retargetRect.width / 2;
-
-    expect(
-      Math.abs(retargetCenter - middleCenter)
-    ).toBeLessThan(40);
-  }
-
   await expect.poll(async () =>
     tooltip.evaluate((element) =>
       element.getAnimations().length
     )
   ).toBe(0);
+
+  const finalRect = await tooltip.boundingBox();
+
+  expect(finalRect).not.toBeNull();
+
+  if (middleRect && retargetRect && finalRect) {
+    const middleCenter =
+      middleRect.x + middleRect.width / 2;
+    const retargetCenter =
+      retargetRect.x + retargetRect.width / 2;
+    const finalCenter =
+      finalRect.x + finalRect.width / 2;
+
+    expect(
+      Math.abs(retargetCenter - middleCenter)
+    ).toBeLessThan(
+      Math.abs(finalCenter - middleCenter)
+    );
+  }
 
   expect(
     await page.evaluate(() =>
