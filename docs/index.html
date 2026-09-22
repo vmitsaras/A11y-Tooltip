@@ -12,12 +12,14 @@
   <link rel="stylesheet" href="./demo-site.css">
 </head>
 <body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+
   <header class="site-header">
     <a class="site-header__brand" href="./">A11y Tooltip</a>
     <a href="https://github.com/vmitsaras/A11y-Tooltip">GitHub</a>
   </header>
 
-  <main class="demo">
+  <main class="demo" id="main-content">
     <section class="hero" aria-labelledby="demo-title">
       <p class="eyebrow">Accessible UI primitive</p>
       <h1 id="demo-title">A tooltip that behaves like a tooltip.</h1>
@@ -26,6 +28,31 @@
         more time to read it. Press <kbd>Escape</kbd> to dismiss it without
         moving focus.
       </p>
+    </section>
+
+    <section class="demo-panel prose" aria-labelledby="initialization-title">
+      <p class="eyebrow">Get started</p>
+      <h2 id="initialization-title">Initialize the plugin</h2>
+      <p>
+        Install the package, import its stylesheet, then choose the initializer
+        that matches your page. The package never initializes automatically.
+      </p>
+
+      <h3>Initialize one tooltip</h3>
+      <pre class="demo-code"><code>import { createTooltip } from "a11y-tooltip";
+import "a11y-tooltip/styles.css";
+
+const root = document.querySelector("[data-a11y-tooltip]");
+
+if (root instanceof HTMLElement) {
+  createTooltip(root);
+}</code></pre>
+
+      <h3>Initialize every tooltip in a scope</h3>
+      <pre class="demo-code"><code>import { initTooltipsAll } from "a11y-tooltip";
+import "a11y-tooltip/styles.css";
+
+initTooltipsAll({}, document);</code></pre>
     </section>
 
     <section class="demo-panel" aria-labelledby="playground-title" data-demo-core>
@@ -186,6 +213,38 @@ initTooltipsAll({
       </ul>
     </section>
   </main>
+
+  <footer class="demo-footer" data-demo-footer>
+    <div class="demo-footer__inner">
+      <div class="demo-footer__brand">
+        <p class="demo-footer__eyebrow">Accessibility plugin demo</p>
+        <p class="demo-footer__credit">
+          <span class="demo-footer__plugin">A11y Tooltip</span>
+          <span class="demo-footer__separator" aria-hidden="true">&middot;</span>
+          Built by
+          <a class="demo-footer__link" href="https://github.com/vmitsaras/">Vasileios Mitsaras</a>
+          <span class="demo-footer__separator" aria-hidden="true">&middot;</span>
+          <a class="demo-footer__link" href="https://linkedin.com/in/vasilis-mitsaras">LinkedIn profile</a>
+        </p>
+        <p class="demo-footer__meta">
+          <span>a11y-tooltip</span>
+          <span class="demo-footer__separator" aria-hidden="true">&middot;</span>
+          <span>MIT License</span>
+        </p>
+      </div>
+
+      <nav class="demo-footer__nav" aria-label="Project links">
+        <ul class="demo-footer__links">
+          <li class="demo-footer__item">
+            <a class="demo-footer__link" href="https://github.com/vmitsaras/A11y-Tooltip">GitHub repository</a>
+          </li>
+          <li class="demo-footer__item">
+            <a class="demo-footer__link" href="https://www.npmjs.com/package/a11y-tooltip">npm package</a>
+          </li>
+        </ul>
+      </nav>
+    </div>
+  </footer>
 
   <script type="module">
     import { initTooltipsAll } from "./dist/index.js";
