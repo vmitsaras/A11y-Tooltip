@@ -290,6 +290,18 @@ function normalizeOptions(
     ? (options.semantics as SharedTooltipSemantics)
     : DEFAULTS.semantics;
 
+  const motion = SHARED_TOOLTIP_MOTIONS.includes(
+    options.motion as SharedTooltipMotion
+  )
+    ? (options.motion as SharedTooltipMotion)
+    : DEFAULTS.motion;
+
+  const motionEasing =
+    typeof options.motionEasing === "string" &&
+    options.motionEasing.trim().length > 0
+      ? options.motionEasing.trim()
+      : DEFAULTS.motionEasing;
+
   return Object.freeze({
     triggers,
     getContent: options.getContent,
@@ -308,7 +320,13 @@ function normalizeOptions(
       placement
     ),
     renderMode,
-    semantics
+    semantics,
+    motion,
+    motionDuration: toSafeDelay(
+      options.motionDuration,
+      DEFAULTS.motionDuration
+    ),
+    motionEasing
   });
 }
 
