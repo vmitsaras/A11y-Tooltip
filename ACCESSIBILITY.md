@@ -74,6 +74,26 @@ element and therefore does not bypass every ancestor clipping context.
 Accessibility therefore depends on the same core tooltip contract after the
 custom markup has been resolved.
 
+## Diagnostics
+
+The `a11y-tooltip/diagnostics` entry point is developer tooling, not runtime
+accessibility behavior.
+
+- Scans are explicit; importing the module does not scan the document.
+- Scans are read-only and do not initialize, open, close, repair, or mutate
+  tooltips.
+- No live regions, focus changes, keyboard shortcuts, storage, analytics, or
+  network calls are introduced.
+- Findings about accessible names are deliberately phrased as heuristic because
+  the scanner does not implement the browser's complete accessible-name
+  computation.
+- A clean diagnostics result is not evidence of WCAG conformance or verified
+  assistive-technology output.
+
+Diagnostics are intended to catch common integration mistakes earlier while the
+core tooltip and manual accessibility verification remain the source of truth
+for behavior.
+
 ## Manual release checks
 
 | Check | Environment | Status |
