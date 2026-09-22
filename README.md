@@ -476,6 +476,52 @@ prove screen-reader announcement timing. Manual NVDA, JAWS, VoiceOver, and
 TalkBack verification remains required before treating this mode as a default
 semantic strategy.
 
+### Shared tooltip WAAPI motion
+
+The shared controller can optionally animate retargeting with a native,
+zero-dependency WAAPI FLIP transition:
+
+```ts
+createSharedTooltip(toolbar, {
+  triggers: "[data-tooltip-text]",
+  getContent(trigger) {
+    return trigger.dataset.tooltipText ?? "";
+  },
+  motion: "move"
+});
+```
+
+`motion: "none"` remains the default. With `"move"`, the controller measures
+the tooltip's current visual rectangle, applies the new content/semantics/anchor
+state synchronously, measures the new final rectangle, then animates only the
+visual `translate` displacement back to zero.
+
+Defaults:
+
+```ts
+motionDuration: 180
+motionEasing: "cubic-bezier(0.2, 0.8, 0.2, 1)"
+```
+
+The motion layer:
+
+- animates retargets only; initial open and close behavior are unchanged;
+- keeps one tooltip element rather than cross-fading separate tooltips;
+- updates content, `aria-describedby`, anchor ownership, and native hint
+  `source` before visual motion begins;
+- measures the current rendered rectangle before canceling an interrupted
+  animation, so rapid A → B → C traversal continues from the visible position;
+- animates position only, avoiding scaled/distorted tooltip text;
+- automatically disables travel for
+  `prefers-reduced-motion: reduce`;
+- cancels active motion on close/destroy;
+- falls back to an immediate retarget if WAAPI animation creation is unavailable
+  or rejects the supplied easing.
+
+The same motion path is browser-tested with anchored rendering, experimental
+`semantics: "describedby"`, and experimental native `popover="hint"`
+rendering.
+
 ## CSS
 
 The default stylesheet uses BEM classes for styling and `data-*` attributes for JavaScript hooks.
