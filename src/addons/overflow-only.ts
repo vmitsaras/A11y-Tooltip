@@ -174,7 +174,7 @@ export function createOverflowOnlyAddon(
   return Object.freeze({
     name: "overflow-only",
 
-    setup(instance) {
+    setup(instance: TooltipInstance) {
       const handleBeforeOpen = (event: Event): void => {
         const target = resolveTarget(instance, resolvedOptions.target);
 
