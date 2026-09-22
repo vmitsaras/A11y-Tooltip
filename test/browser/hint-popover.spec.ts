@@ -135,7 +135,9 @@ test("native close stays dismissed during the current focus activation", async (
   await expect(trigger).toBeFocused();
 
   await tooltip.evaluate((element) => {
-    element.hidePopover();
+    if (element instanceof HTMLElement) {
+      element.hidePopover();
+    }
   });
 
   await expect(root).not.toHaveClass(/is-open/u);
@@ -253,6 +255,10 @@ test("direct native opening cannot bypass core state", async ({
   const tooltip = root.locator("[data-a11y-tooltip-content]");
 
   const result = await tooltip.evaluate((element) => {
+    if (!(element instanceof HTMLElement)) {
+      return false;
+    }
+
     try {
       element.showPopover();
       return element.matches(":popover-open");
