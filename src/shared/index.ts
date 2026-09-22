@@ -1145,8 +1145,9 @@ implements SharedTooltipController {
         return false;
       }
 
-      this.assignActiveTrigger(trigger);
+      this.releaseActiveDescription();
       this.tooltip.textContent = content;
+      this.assignActiveTrigger(trigger);
       this.updatePosition();
 
       if (!this.retargetNativeHint(trigger)) {
@@ -1179,8 +1180,8 @@ implements SharedTooltipController {
       return false;
     }
 
-    this.assignActiveTrigger(trigger);
     this.tooltip.textContent = content;
+    this.assignActiveTrigger(trigger);
     this.tooltip.hidden = false;
     this.openState = true;
     this.container.classList.add(
