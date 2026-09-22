@@ -43,7 +43,8 @@ export type TooltipCloseReason =
   | "blur"
   | "destroy"
   | "escape"
-  | "leave";
+  | "leave"
+  | "platform";
 
 export interface TooltipElements {
   trigger: HTMLElement;
@@ -400,11 +401,24 @@ export class A11yTooltip implements TooltipInstance {
       return true;
     }
 
-    if (
-      reason !== "destroy" &&
-      !this.dispatch(EVENTS.beforeClose, { reason }, true)
-    ) {
-      return false;
+    if (reason !== "destroy") {
+      const cancelable =
+        reason !== "escape" &&
+        reason !== "platform";
+
+      const allowed = this.dispatch(
+        EVENTS.beforeClose,
+        { reason },
+        cancelable
+      );
+
+      if (cancelable && !allowed) {
+        return false;
+      }
+    }
+
+    if (reason === "escape" || reason === "platform") {
+      this.dismissedDuringActivation = true;
     }
 
     this.openState = false;
@@ -537,7 +551,6 @@ export class A11yTooltip implements TooltipInstance {
       return;
     }
 
-    this.dismissedDuringActivation = true;
     this.close("escape");
   }
 
