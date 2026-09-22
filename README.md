@@ -262,6 +262,64 @@ This makes the plugin easier to adopt in legacy BEM components, CMS templates,
 third-party design systems, and custom-element light DOM without coupling the
 core runtime to any one markup convention.
 
+## Diagnostics
+
+The optional `a11y-tooltip/diagnostics` entry point provides explicit,
+read-only integration checks. Nothing scans automatically.
+
+```ts
+import {
+  scanTooltipRoot,
+  scanTooltips
+} from "a11y-tooltip/diagnostics";
+
+const findings = scanTooltips();
+
+for (const finding of findings) {
+  console.warn(
+    finding.code,
+    finding.severity,
+    finding.message
+  );
+}
+```
+
+For custom design-system markup, pass the same adapter and a root selector:
+
+```ts
+scanTooltips({
+  rootSelector: ".field-help",
+  adapter: createSelectorAdapter({
+    name: "field-help",
+    trigger: ".field-help__trigger",
+    tooltip: ".field-help__copy"
+  })
+});
+```
+
+Current diagnostics include:
+
+- missing or duplicate default trigger/tooltip hooks;
+- adapter resolution failures or thrown adapter errors;
+- keyboard-inaccessible triggers;
+- triggers with no **obvious** accessible-name source;
+- native `title` conflicts that can create a second tooltip;
+- empty tooltip content;
+- interactive tooltip content;
+- duplicate tooltip IDs;
+- broken `aria-describedby` references;
+- initialized tooltips that lost their description relationship;
+- authored tooltips hidden before enhancement;
+- nested tooltip roots.
+
+The name check is intentionally heuristic. It does not implement the browser's
+full accessible-name computation and must not be treated as assistive-technology
+verification.
+
+The diagnostics API does not initialize, open, close, repair, persist, send,
+or mutate anything. It returns frozen finding records so applications, demos,
+tests, or developer tooling can decide how to present them.
+
 ## CSS
 
 The default stylesheet uses BEM classes for styling and `data-*` attributes for JavaScript hooks.
@@ -287,6 +345,7 @@ See [ACCESSIBILITY.md](./ACCESSIBILITY.md) for the verification matrix and known
 - `examples/overflow-only/`
 - `examples/anchor-positioning/`
 - `examples/selector-adapter/`
+- `examples/diagnostics/`
 - GitHub Pages demo: `docs/` when Pages is configured to serve `/docs` from `main`.
 
 ## Docs metadata
