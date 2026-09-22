@@ -412,10 +412,11 @@ A typical trigger already exposes its purpose independently:
 </button>
 ```
 
-The controller deliberately does **not** add or move `aria-describedby`.
-Its shared tooltip is visual-only and remains `aria-hidden="true"`, avoiding a
-single mutable description node becoming the semantic description for many
-inactive controls.
+By default, the controller does **not** add or move `aria-describedby`.
+Its default shared tooltip is visual-only and remains `aria-hidden="true"`,
+avoiding a single mutable description node becoming the semantic description
+for many inactive controls. The experimental `semantics: "describedby"` mode
+changes that behavior only for the active trigger.
 
 The controller uses delegated `focusin` / `focusout` and pointer events, so
 new matching triggers work without reinitialization or a `MutationObserver`.
