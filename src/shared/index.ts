@@ -43,6 +43,7 @@ export type SharedTooltipOpenReason =
 export type SharedTooltipCloseReason =
   | "api"
   | "blur"
+  | "content-empty"
   | "destroy"
   | "escape"
   | "leave";
@@ -436,6 +437,7 @@ implements SharedTooltipController {
 
     const trigger = this.currentTrigger ?? undefined;
     const cancelable =
+      reason !== "content-empty" &&
       reason !== "escape" &&
       reason !== "destroy";
 
@@ -858,11 +860,8 @@ implements SharedTooltipController {
     const content = this.resolveContent(trigger);
 
     if (!content) {
-      if (
-        this.openState &&
-        this.currentTrigger === trigger
-      ) {
-        this.close("api");
+      if (this.openState) {
+        this.close("content-empty");
       }
 
       return false;
