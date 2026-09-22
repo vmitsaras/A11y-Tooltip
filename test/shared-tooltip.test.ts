@@ -506,6 +506,34 @@ describe("createSharedTooltip", () => {
     expect(authored.getAttribute("aria-hidden")).toBe("true");
   });
 
+  it("rejects duplicate authored ids in describedby mode", () => {
+    const { container } = renderToolbar();
+    const authored = document.createElement("span");
+    const duplicate = document.createElement("span");
+
+    authored.id = "shared-duplicate";
+    duplicate.id = "shared-duplicate";
+
+    document.body.append(authored, duplicate);
+
+    expect(() =>
+      createSharedTooltip(container, {
+        triggers: "[data-tooltip-text]",
+        getContent(trigger) {
+          return trigger.dataset.tooltipText;
+        },
+        tooltip: authored,
+        semantics: "describedby"
+      })
+    ).toThrow(/must be unique/u);
+
+    expect(
+      container.hasAttribute(
+        "data-a11y-shared-tooltip"
+      )
+    ).toBe(false);
+  });
+
   it("falls back to anchored rendering when native hint support is unavailable", () => {
     const { container, first } = renderToolbar();
 
