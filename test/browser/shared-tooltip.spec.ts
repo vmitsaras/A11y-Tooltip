@@ -714,6 +714,7 @@ test("scrolled docs demo moves across its row without page-sized travel", async 
   await expect(toolbar).toHaveClass(
     /is-shared-tooltip-initialized/u
   );
+  await page.locator('[data-shared-motion="none"]').click();
   await page.locator('[data-shared-motion="move"]').click();
 
   await buttons.nth(0).focus();
@@ -747,6 +748,7 @@ test("scrolled docs demo moves across its row without page-sized travel", async 
 
 test("docs motion demo visibly travels between differently sized labels", async ({ page }) => {
   await page.goto("/docs/");
+  await page.locator('[data-shared-motion="none"]').click();
   await page.locator('[data-shared-motion="move"]').click();
   const buttons = page.locator("[data-demo-shared-motion-toolbar] button");
   const tooltip = page.locator('[data-a11y-shared-tooltip-content]:not([hidden])');
@@ -772,6 +774,7 @@ test("docs motion demo visibly travels between differently sized labels", async 
 
 test("scrolled docs keeps the tooltip in place until retarget motion begins", async ({ page }) => {
   await page.goto("/docs/");
+  await page.locator('[data-shared-motion="none"]').click();
   await page.locator('[data-shared-motion="move"]').click();
 
   const positions = await page.evaluate(async () => {
@@ -805,6 +808,7 @@ test("scrolled docs keeps the tooltip in place until retarget motion begins", as
 
 test("scrolled docs retarget stays on screen after every paint", async ({ page }) => {
   await page.goto("/docs/");
+  await page.locator('[data-shared-motion="none"]').click();
   await page.locator('[data-shared-motion="move"]').click();
 
   const samples = await page.evaluate(async () => {
@@ -845,6 +849,7 @@ test("scrolled docs retarget stays on screen after every paint", async ({ page }
 
 test("docs motion demo retains the shared tooltip across a brief pointer gap", async ({ page }) => {
   await page.goto("/docs/");
+  await page.locator('[data-shared-motion="none"]').click();
   await page.locator('[data-shared-motion="move"]').click();
 
   const buttons = page.locator("[data-demo-shared-motion-toolbar] button");
