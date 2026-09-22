@@ -56,6 +56,14 @@ const GLOBAL_KEYWORDS = new Set([
 
 let generatedAnchorId = 0;
 
+interface ActiveAnchorSetup {
+  references: number;
+  restore(): void;
+}
+
+const ACTIVE_ANCHOR_SETUPS =
+  new WeakMap<TooltipInstance, ActiveAnchorSetup>();
+
 function isFallback(value: unknown): value is AnchorPositioningFallback {
   return (
     typeof value === "string" &&
@@ -172,6 +180,139 @@ function serializeFallbacks(
  * The addon does not move focus, change ARIA, reparent DOM, install observers,
  * or introduce a positioning runtime dependency.
  */
+export function setupAnchorPositioning(
+  instance: TooltipInstance,
+  options: AnchorPositioningAddonOptions = {}
+): () => void {
+  const active = ACTIVE_ANCHOR_SETUPS.get(instance);
+
+  if (active) {
+    active.references += 1;
+
+    let released = false;
+
+    return () => {
+      if (released) {
+        return;
+      }
+
+      released = true;
+      const current = ACTIVE_ANCHOR_SETUPS.get(instance);
+
+      if (!current) {
+        return;
+      }
+
+      current.references -= 1;
+
+      if (current.references === 0) {
+        ACTIVE_ANCHOR_SETUPS.delete(instance);
+        current.restore();
+      }
+    };
+  }
+
+  const anchorName = createAnchorName();
+  const fallbacks = normalizeFallbacks(
+    options.fallbacks,
+    instance.options.placement
+  );
+
+  const originalRootAttribute =
+    instance.root.getAttribute(ROOT_ATTRIBUTE);
+
+  const originalAnchorName = snapshotInlineStyle(
+    instance.trigger,
+    "anchor-name"
+  );
+
+  const originalPositionAnchor = snapshotInlineStyle(
+    instance.tooltip,
+    "position-anchor"
+  );
+
+  const originalPositionTryFallbacks = snapshotInlineStyle(
+    instance.tooltip,
+    "position-try-fallbacks"
+  );
+
+  instance.root.setAttribute(ROOT_ATTRIBUTE, "");
+
+  instance.trigger.style.setProperty(
+    "anchor-name",
+    mergeAnchorName(originalAnchorName.value, anchorName),
+    originalAnchorName.priority
+  );
+
+  instance.tooltip.style.setProperty(
+    "position-anchor",
+    anchorName,
+    originalPositionAnchor.priority
+  );
+
+  instance.tooltip.style.setProperty(
+    "position-try-fallbacks",
+    serializeFallbacks(fallbacks),
+    originalPositionTryFallbacks.priority
+  );
+
+  const state: ActiveAnchorSetup = {
+    references: 1,
+    restore() {
+      if (originalRootAttribute === null) {
+        instance.root.removeAttribute(ROOT_ATTRIBUTE);
+      } else {
+        instance.root.setAttribute(
+          ROOT_ATTRIBUTE,
+          originalRootAttribute
+        );
+      }
+
+      restoreInlineStyle(
+        instance.trigger,
+        "anchor-name",
+        originalAnchorName
+      );
+
+      restoreInlineStyle(
+        instance.tooltip,
+        "position-anchor",
+        originalPositionAnchor
+      );
+
+      restoreInlineStyle(
+        instance.tooltip,
+        "position-try-fallbacks",
+        originalPositionTryFallbacks
+      );
+    }
+  };
+
+  ACTIVE_ANCHOR_SETUPS.set(instance, state);
+
+  let released = false;
+
+  return () => {
+    if (released) {
+      return;
+    }
+
+    released = true;
+    const current = ACTIVE_ANCHOR_SETUPS.get(instance);
+
+    if (!current) {
+      return;
+    }
+
+    current.references -= 1;
+
+    if (current.references === 0) {
+      ACTIVE_ANCHOR_SETUPS.delete(instance);
+      current.restore();
+    }
+  };
+}
+
 export function createAnchorPositioningAddon(
   options: AnchorPositioningAddonOptions = {}
 ): TooltipAddon {
@@ -179,78 +320,7 @@ export function createAnchorPositioningAddon(
     name: "anchor-positioning",
 
     setup(instance: TooltipInstance) {
-      const anchorName = createAnchorName();
-      const fallbacks = normalizeFallbacks(
-        options.fallbacks,
-        instance.options.placement
-      );
-
-      const originalRootAttribute =
-        instance.root.getAttribute(ROOT_ATTRIBUTE);
-
-      const originalAnchorName = snapshotInlineStyle(
-        instance.trigger,
-        "anchor-name"
-      );
-
-      const originalPositionAnchor = snapshotInlineStyle(
-        instance.tooltip,
-        "position-anchor"
-      );
-
-      const originalPositionTryFallbacks = snapshotInlineStyle(
-        instance.tooltip,
-        "position-try-fallbacks"
-      );
-
-      instance.root.setAttribute(ROOT_ATTRIBUTE, "");
-
-      instance.trigger.style.setProperty(
-        "anchor-name",
-        mergeAnchorName(originalAnchorName.value, anchorName),
-        originalAnchorName.priority
-      );
-
-      instance.tooltip.style.setProperty(
-        "position-anchor",
-        anchorName,
-        originalPositionAnchor.priority
-      );
-
-      instance.tooltip.style.setProperty(
-        "position-try-fallbacks",
-        serializeFallbacks(fallbacks),
-        originalPositionTryFallbacks.priority
-      );
-
-      return () => {
-        if (originalRootAttribute === null) {
-          instance.root.removeAttribute(ROOT_ATTRIBUTE);
-        } else {
-          instance.root.setAttribute(
-            ROOT_ATTRIBUTE,
-            originalRootAttribute
-          );
-        }
-
-        restoreInlineStyle(
-          instance.trigger,
-          "anchor-name",
-          originalAnchorName
-        );
-
-        restoreInlineStyle(
-          instance.tooltip,
-          "position-anchor",
-          originalPositionAnchor
-        );
-
-        restoreInlineStyle(
-          instance.tooltip,
-          "position-try-fallbacks",
-          originalPositionTryFallbacks
-        );
-      };
+      return setupAnchorPositioning(instance, options);
     }
   });
 }
