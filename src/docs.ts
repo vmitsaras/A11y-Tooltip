@@ -121,6 +121,12 @@ if (root instanceof HTMLElement) {
       type: "(options?: ScanTooltipsOptions) => readonly TooltipDiagnostic[]",
       description:
         "From a11y-tooltip/diagnostics: scans matching tooltip roots in a scope without mutating them."
+    },
+    {
+      name: "createHintPopoverAddon()",
+      type: "() => TooltipAddon",
+      description:
+        "From a11y-tooltip/addons: experimentally renders supported tooltips as native hint popovers in the top layer and synchronizes platform dismissal."
     }
   ],
   examples: [
@@ -152,6 +158,12 @@ if (root instanceof HTMLElement) {
       description:
         "Runs explicit read-only checks against intentionally flawed tooltip integrations.",
       path: "examples/diagnostics"
+    },
+    {
+      name: "Native hint popover",
+      description:
+        "Exercises top-layer hint rendering, clipping escape, hint-stack behavior, and coexistence with an auto popover.",
+      path: "examples/hint-popover"
     }
   ]
 } satisfies PluginDocs;
