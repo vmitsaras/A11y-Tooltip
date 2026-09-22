@@ -30,6 +30,7 @@
 ## v0.2 — Verification, focused addons, and diagnostics
 
 - [x] ADDON-210 — Overflow-only tooltip via `createOverflowOnlyAddon()`
+- [x] ADDON-240 — CSS Anchor Positioning via `createAnchorPositioningAddon()`
 
 Only after v0.1 runtime behavior is stable:
 
@@ -41,8 +42,7 @@ Only after v0.1 runtime behavior is stable:
 
 These are deliberately not part of the core MVP:
 
-- viewport collision/flip positioning;
-- an optional positioning adapter built on a browser API once project browser targets justify it;
+- richer viewport-placement strategies only if the native anchor-positioning addon proves insufficient;
 - framework-specific wrappers maintained outside the core runtime;
 - additional coordination addons where repeated real integrations demonstrate need.
 
