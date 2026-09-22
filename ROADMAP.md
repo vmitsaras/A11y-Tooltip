@@ -27,7 +27,9 @@
 - [ ] Manual zoom/large-pointer hover check
 - [ ] Manual Windows forced-colors check
 
-## v0.2 — Verification and diagnostics
+## v0.2 — Verification, focused addons, and diagnostics
+
+- [x] ADDON-210 — Overflow-only tooltip via `createOverflowOnlyAddon()`
 
 Only after v0.1 runtime behavior is stable:
 

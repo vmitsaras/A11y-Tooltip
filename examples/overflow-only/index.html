@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>A11y Tooltip — Overflow-only addon</title>
+  <link rel="stylesheet" href="../../dist/styles.css">
+  <style>
+    body {
+      margin: 0;
+      padding: 4rem 1.5rem;
+      font-family: system-ui, sans-serif;
+      color: #15181d;
+      background: #f7f8fa;
+    }
+
+    main {
+      max-width: 48rem;
+      margin-inline: auto;
+    }
+
+    .example-stack {
+      display: grid;
+      gap: 2rem;
+      margin-block-start: 3rem;
+    }
+
+    .file-button {
+      display: block;
+      max-inline-size: 16rem;
+      min-block-size: 2.75rem;
+      padding: 0.65rem 0.85rem;
+      overflow: hidden;
+      border: 1px solid #8c95a3;
+      border-radius: 0.5rem;
+      background: white;
+      color: inherit;
+      font: inherit;
+      text-align: start;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .file-button--wide {
+      max-inline-size: 32rem;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Overflow-only tooltip</h1>
+
+    <p>
+      Both controls keep the same accessible description. The floating tooltip
+      opens only when the measured trigger is visually clipped.
+    </p>
+
+    <div class="example-stack">
+      <span class="a11y-tooltip" data-a11y-tooltip>
+        <button
+          class="a11y-tooltip__trigger file-button"
+          data-a11y-tooltip-trigger
+          aria-label="Open the annual accessibility review"
+        >
+          Annual accessibility review 2026 final approved edition.pdf
+        </button>
+        <span
+          class="a11y-tooltip__content"
+          data-a11y-tooltip-content
+        >
+          Full file name: Annual accessibility review 2026 final approved edition.pdf
+        </span>
+      </span>
+
+      <span class="a11y-tooltip" data-a11y-tooltip>
+        <button
+          class="a11y-tooltip__trigger file-button file-button--wide"
+          data-a11y-tooltip-trigger
+          aria-label="Open notes"
+        >
+          Notes.txt
+        </button>
+        <span
+          class="a11y-tooltip__content"
+          data-a11y-tooltip-content
+        >
+          Full file name: Notes.txt
+        </span>
+      </span>
+    </div>
+  </main>
+
+  <script type="module">
+    import { initTooltipsAll } from "../../dist/index.js";
+    import { createOverflowOnlyAddon } from "../../dist/addons/index.js";
+
+    initTooltipsAll({
+      addons: [createOverflowOnlyAddon()]
+    });
+  </script>
+</body>
+</html>
