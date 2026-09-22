@@ -97,6 +97,12 @@ if (root instanceof HTMLElement) {
       type: "(options?: OverflowOnlyAddonOptions) => TooltipAddon",
       description:
         "From a11y-tooltip/addons: cancels visual opening unless the configured target is actually clipped."
+    },
+    {
+      name: "createAnchorPositioningAddon(options?)",
+      type: "(options?: AnchorPositioningAddonOptions) => TooltipAddon",
+      description:
+        "From a11y-tooltip/addons: progressively enables native CSS Anchor Positioning with placement-aware position-try fallbacks."
     }
   ],
   examples: [
@@ -110,6 +116,12 @@ if (root instanceof HTMLElement) {
       description:
         "Shows the floating tooltip only when the measured target is visually clipped.",
       path: "examples/overflow-only"
+    },
+    {
+      name: "Anchor positioning",
+      description:
+        "Uses native CSS Anchor Positioning and position-try fallbacks while preserving the default CSS fallback.",
+      path: "examples/anchor-positioning"
     }
   ]
 } satisfies PluginDocs;
