@@ -103,14 +103,17 @@ function hasObviousAccessibleName(element: HTMLElement): boolean {
 
   if (labelledBy) {
     const rootNode = element.getRootNode();
+    const getElementById = (
+      rootNode as Document | ShadowRoot
+    ).getElementById;
 
-    if ("getElementById" in rootNode) {
+    if (typeof getElementById === "function") {
       const hasLabelReference = labelledBy
         .trim()
         .split(/\s+/u)
         .filter(Boolean)
         .some((id) => {
-          const label = rootNode.getElementById(id);
+          const label = getElementById.call(rootNode, id);
 
           return Boolean(label?.textContent?.trim());
         });
@@ -168,8 +171,11 @@ function getBrokenDescribedByIds(
   }
 
   const rootNode = trigger.getRootNode();
+  const getElementById = (
+    rootNode as Document | ShadowRoot
+  ).getElementById;
 
-  if (!("getElementById" in rootNode)) {
+  if (typeof getElementById !== "function") {
     return [];
   }
 
@@ -177,7 +183,7 @@ function getBrokenDescribedByIds(
     .trim()
     .split(/\s+/u)
     .filter(Boolean)
-    .filter((id) => !rootNode.getElementById(id));
+    .filter((id) => !getElementById.call(rootNode, id));
 }
 
 function inspectDefaultMarkup(
@@ -273,13 +279,18 @@ function resolveElements(
   try {
     const elements = adapter.resolve(root);
 
-    if (!elements) {
+    if (
+      !elements ||
+      !(elements.trigger instanceof HTMLElement) ||
+      !(elements.tooltip instanceof HTMLElement) ||
+      elements.trigger === elements.tooltip
+    ) {
       findings.push(
         finding(
           root,
           "adapter-unresolved",
           "error",
-          `Tooltip adapter "${adapter.name}" could not resolve a trigger and tooltip for this root.`
+          `Tooltip adapter "${adapter.name}" could not resolve one distinct HTMLElement trigger and tooltip for this root.`
         )
       );
 
@@ -435,19 +446,6 @@ function inspectElements(
     );
   }
 
-  const nestedRoot = root.querySelector(tooltipSelectors.root);
-
-  if (nestedRoot instanceof HTMLElement) {
-    findings.push(
-      finding(
-        root,
-        "nested-tooltip-root",
-        "warning",
-        "A tooltip root is nested inside another tooltip root. Nested activation regions can make hover and lifecycle behavior difficult to reason about.",
-        nestedRoot
-      )
-    );
-  }
 }
 
 /**
@@ -466,6 +464,20 @@ export function scanTooltipRoot(
   }
 
   const findings: TooltipDiagnostic[] = [];
+  const nestedRoot = root.querySelector(tooltipSelectors.root);
+
+  if (nestedRoot instanceof HTMLElement) {
+    findings.push(
+      finding(
+        root,
+        "nested-tooltip-root",
+        "warning",
+        "A tooltip root is nested inside another tooltip root. Nested activation regions can make hover and lifecycle behavior difficult to reason about.",
+        nestedRoot
+      )
+    );
+  }
+
   const adapter = options.adapter ?? dataAttributeAdapter;
   const elements = resolveElements(root, adapter, findings);
 
