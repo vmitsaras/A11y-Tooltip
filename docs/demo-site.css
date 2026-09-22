@@ -179,3 +179,49 @@ kbd {
     grid-template-columns: 1fr;
   }
 }
+
+.addon-demo {
+  display: flex;
+  gap: 2rem;
+  margin-block: 3rem;
+}
+
+.addon-demo--edges {
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+
+.addon-demo--stack {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.addon-demo .a11y-tooltip {
+  min-inline-size: 0;
+  max-inline-size: 100%;
+  flex-wrap: wrap;
+}
+
+.addon-demo__file {
+  display: block;
+  min-inline-size: 0;
+  max-inline-size: min(16rem, 100%);
+  overflow: hidden;
+  text-align: start;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.demo-code {
+  padding: 1rem;
+  border: 1px solid #d7d2c8;
+  border-radius: 0.75rem;
+  background: #f3f1ec;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.6;
+}
+
+.prose code {
+  overflow-wrap: anywhere;
+}

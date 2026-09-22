@@ -202,7 +202,9 @@ position-try fallback attempts.
 
 The default stylesheet activates anchor-based layout only inside an
 `@supports` rule. Browsers without the required Anchor Positioning features
-therefore retain the existing absolute-position CSS unchanged.
+therefore retain the existing absolute-position CSS unchanged. Enhanced tooltips
+use fixed positioning and span the cross axis so fallback placements have room
+for descriptions larger than the trigger, while preserving the configured offset.
 
 The addon:
 

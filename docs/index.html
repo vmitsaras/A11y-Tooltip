@@ -28,7 +28,7 @@
       </p>
     </section>
 
-    <section class="demo-panel" aria-labelledby="playground-title">
+    <section class="demo-panel" aria-labelledby="playground-title" data-demo-core>
       <div class="demo-panel__heading">
         <div>
           <p class="eyebrow">Live playground</p>
@@ -71,6 +71,92 @@
       </div>
     </section>
 
+    <section class="demo-panel prose" aria-labelledby="anchor-title" data-demo-anchor>
+      <p class="eyebrow">Optional addon · CSS Anchor Positioning</p>
+      <h2 id="anchor-title">Give descriptions room near an edge</h2>
+      <p>
+        Use <code>createAnchorPositioningAddon()</code> for controls in compact
+        toolbars or near a viewport edge. It connects each tooltip to its trigger
+        with native CSS Anchor Positioning and supplies placement-aware
+        <code>position-try</code> fallbacks when the preferred side runs out of room.
+        Browsers without the required CSS features keep the standard positioning.
+        Pass <code>fallbacks: []</code> to disable fallback attempts, or provide
+        your own supported fallback tactics.
+      </p>
+      <p>
+        Focus or hover either trigger, then resize the window to explore the
+        available space. Both examples prefer an outward-facing placement;
+        fallback attempts depend on browser support and available room.
+      </p>
+      <div class="addon-demo addon-demo--edges">
+        <span class="a11y-tooltip" data-a11y-tooltip data-a11y-tooltip-placement="left">
+          <button class="demo-button a11y-tooltip__trigger" data-a11y-tooltip-trigger>Prefer left</button>
+          <span class="a11y-tooltip__content" data-a11y-tooltip-content>
+            A left placement tries an inline flip first when space is limited.
+          </span>
+        </span>
+        <span class="a11y-tooltip" data-a11y-tooltip data-a11y-tooltip-placement="right">
+          <button class="demo-button a11y-tooltip__trigger" data-a11y-tooltip-trigger>Prefer right</button>
+          <span class="a11y-tooltip__content" data-a11y-tooltip-content>
+            A right placement can try the opposite side without moving focus.
+          </span>
+        </span>
+      </div>
+      <pre class="demo-code"><code>import { initTooltipsAll } from "a11y-tooltip";
+import { createAnchorPositioningAddon } from "a11y-tooltip/addons";
+import "a11y-tooltip/styles.css";
+
+initTooltipsAll({
+  addons: [createAnchorPositioningAddon()]
+}, document.querySelector("[data-demo-anchor]"));</code></pre>
+    </section>
+
+    <section class="demo-panel prose" aria-labelledby="overflow-title" data-demo-overflow>
+      <p class="eyebrow">Optional addon · Overflow only</p>
+      <h2 id="overflow-title">Reveal text only when it is clipped</h2>
+      <p>
+        Use <code>createOverflowOnlyAddon()</code> for truncated file names,
+        table labels, or compact controls. By default it measures the trigger's
+        inline overflow whenever opening is requested. A floating tooltip opens
+        only when the text is clipped; the <code>aria-describedby</code>
+        relationship stays intact either way.
+      </p>
+      <p>
+        Focus or hover the long file name to reveal its full text. Try
+        <strong>Notes.txt</strong> for comparison: it fits, so no floating tooltip
+        opens. After resizing, leave and return to a trigger to measure it again.
+      </p>
+      <div class="addon-demo addon-demo--stack">
+        <span class="a11y-tooltip" data-a11y-tooltip>
+          <button class="demo-button addon-demo__file a11y-tooltip__trigger" data-a11y-tooltip-trigger>
+            Annual accessibility review 2026 final approved edition.pdf
+          </button>
+          <span class="a11y-tooltip__content" data-a11y-tooltip-content>
+            Full file name: Annual accessibility review 2026 final approved edition.pdf
+          </span>
+        </span>
+        <span class="a11y-tooltip" data-a11y-tooltip>
+          <button class="demo-button addon-demo__file a11y-tooltip__trigger" data-a11y-tooltip-trigger>Notes.txt</button>
+          <span class="a11y-tooltip__content" data-a11y-tooltip-content>
+            Full file name: Notes.txt
+          </span>
+        </span>
+      </div>
+      <pre class="demo-code"><code>import { initTooltipsAll } from "a11y-tooltip";
+import { createOverflowOnlyAddon } from "a11y-tooltip/addons";
+import "a11y-tooltip/styles.css";
+
+initTooltipsAll({
+  addons: [createOverflowOnlyAddon()]
+}, document.querySelector("[data-demo-overflow]"));</code></pre>
+      <p>
+        For nested labels, set <code>target</code> to a selector within the tooltip
+        root. Use <code>axis: "block"</code> or <code>axis: "either"</code> for other
+        clipping directions, and <code>tolerance</code> to ignore small differences
+        in CSS pixels. Measurement happens on opening, without continuous observation.
+      </p>
+    </section>
+
     <section class="demo-panel" aria-labelledby="event-title">
       <div class="demo-panel__heading">
         <div>
@@ -104,7 +190,18 @@
   <script type="module">
     import { initTooltipsAll } from "./dist/index.js";
 
-    initTooltipsAll();
+    import {
+      createAnchorPositioningAddon,
+      createOverflowOnlyAddon
+    } from "./dist/addons/index.js";
+
+    initTooltipsAll({}, document.querySelector("[data-demo-core]"));
+    initTooltipsAll({
+      addons: [createAnchorPositioningAddon()]
+    }, document.querySelector("[data-demo-anchor]"));
+    initTooltipsAll({
+      addons: [createOverflowOnlyAddon()]
+    }, document.querySelector("[data-demo-overflow]"));
 
     const log = document.querySelector("[data-event-log]");
     const interestingEvents = new Set([

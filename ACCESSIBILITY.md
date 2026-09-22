@@ -69,6 +69,16 @@ element and therefore does not bypass every ancestor clipping context.
 | Forced-colors presentation | Windows forced colors | Pending |
 | Touch behavior for focusable triggers | VoiceOver iOS / TalkBack Android | Pending |
 
+## Anchor positioning regression checks
+
+- In the main demo, focus Prefer left and Prefer right near viewport edges.
+  Each tooltip should flip inward, remain visible, and keep the configured
+  `--a11y-tooltip-offset` gap without intersecting its trigger.
+- Repeat with descriptions taller or wider than their triggers, and check all
+  four placements in `examples/anchor-positioning/`.
+- Scroll with a tooltip open; it should remain attached to its trigger.
+- Press Escape: the tooltip closes and focus stays on the trigger.
+
 ## Integration responsibilities and limitations
 
 - Authors must provide a useful accessible name on the trigger. The tooltip is a description, not a replacement label.
