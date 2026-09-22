@@ -85,7 +85,7 @@ describe("tooltip diagnostics", () => {
     expect(codes).toContain("missing-tooltip");
   });
 
-  it("reports focus, naming, native title, empty, and interactive issues", () => {
+  it("reports focus, native title, and interactive issues", () => {
     document.body.innerHTML = `
       <span data-a11y-tooltip>
         <span
@@ -245,6 +245,29 @@ describe("tooltip diagnostics", () => {
         adapter
       })
     ).toEqual([]);
+  });
+
+  it("reports invalid adapter element contracts without throwing", () => {
+    const root = renderValidTooltip();
+
+    const findings = scanTooltipRoot(root, {
+      adapter: {
+        name: "invalid-elements",
+        resolve() {
+          return {
+            trigger: document.createElementNS(
+              "http://www.w3.org/2000/svg",
+              "g"
+            ),
+            tooltip: document.createElement("span")
+          } as never;
+        }
+      }
+    });
+
+    expect(findings.map((finding) => finding.code)).toContain(
+      "adapter-unresolved"
+    );
   });
 
   it("reports adapter failures without throwing", () => {
