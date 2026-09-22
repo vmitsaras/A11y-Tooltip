@@ -1,3 +1,4 @@
+import type { SharedTooltipOptions } from "../shared/index.js";
 import {
   A11yTooltip,
   dataAttributeAdapter,
@@ -31,7 +32,11 @@ export const TOOLTIP_DIAGNOSTIC_CODES = Object.freeze([
   "describedby-broken-reference",
   "describedby-missing-tooltip",
   "authored-tooltip-hidden",
-  "nested-tooltip-root"
+  "nested-tooltip-root",
+  "nested-shared-tooltip-root",
+  "shared-content-empty",
+  "shared-invalid-trigger-selector",
+  "shared-no-triggers"
 ] as const);
 
 export type TooltipDiagnosticCode =
@@ -528,6 +533,191 @@ export function scanTooltips(
         adapter: options.adapter
       })
     );
+
+  return Object.freeze(findings);
+}
+
+export interface ScanSharedTooltipOptions {
+  triggers: SharedTooltipOptions["triggers"];
+  getContent: SharedTooltipOptions["getContent"];
+  tooltip?: HTMLElement;
+}
+
+/**
+ * Runs read-only diagnostics for a shared-tooltip container.
+ *
+ * The scanner does not initialize a controller or mutate triggers.
+ */
+export function scanSharedTooltip(
+  container: HTMLElement,
+  options: ScanSharedTooltipOptions
+): readonly TooltipDiagnostic[] {
+  if (!(container instanceof HTMLElement)) {
+    throw new TypeError(
+      "scanSharedTooltip() requires an HTMLElement container."
+    );
+  }
+
+  const findings: TooltipDiagnostic[] = [];
+  const selector =
+    typeof options.triggers === "string"
+      ? options.triggers.trim()
+      : "";
+
+  if (!selector) {
+    findings.push(
+      finding(
+        container,
+        "shared-invalid-trigger-selector",
+        "error",
+        "Shared tooltip diagnostics require a non-empty trigger selector."
+      )
+    );
+
+    return Object.freeze(findings);
+  }
+
+  let matches: Element[];
+
+  try {
+    matches = Array.from(
+      container.querySelectorAll(selector)
+    );
+  } catch {
+    findings.push(
+      finding(
+        container,
+        "shared-invalid-trigger-selector",
+        "error",
+        `Invalid shared-tooltip trigger selector: ${selector}`
+      )
+    );
+
+    return Object.freeze(findings);
+  }
+
+  const nestedRoot = container.querySelector(
+    "[data-a11y-shared-tooltip]"
+  );
+
+  if (nestedRoot instanceof HTMLElement) {
+    findings.push(
+      finding(
+        container,
+        "nested-shared-tooltip-root",
+        "warning",
+        "A shared-tooltip controller root is nested inside this container. Delegated ownership must remain isolated.",
+        nestedRoot
+      )
+    );
+  }
+
+  const triggers = matches.filter(
+    (match): match is HTMLElement => {
+      if (!(match instanceof HTMLElement)) {
+        return false;
+      }
+
+      const owner = match.closest(
+        "[data-a11y-shared-tooltip]"
+      );
+
+      return owner === null || owner === container;
+    }
+  );
+
+  if (triggers.length === 0) {
+    findings.push(
+      finding(
+        container,
+        "shared-no-triggers",
+        "warning",
+        "No shared-tooltip triggers currently match the configured selector."
+      )
+    );
+  }
+
+  for (const trigger of triggers) {
+    if (!isKeyboardFocusable(trigger)) {
+      findings.push(
+        finding(
+          container,
+          "trigger-not-focusable",
+          "error",
+          "A shared-tooltip trigger is not keyboard-focusable.",
+          trigger
+        )
+      );
+    }
+
+    if (!hasObviousAccessibleName(trigger)) {
+      findings.push(
+        finding(
+          container,
+          "trigger-no-obvious-name",
+          "warning",
+          "No obvious accessible-name source was detected on a shared-tooltip trigger. The shared visual tooltip is not an accessible-name substitute.",
+          trigger
+        )
+      );
+    }
+
+    if (trigger.getAttribute("title")?.trim()) {
+      findings.push(
+        finding(
+          container,
+          "native-title-conflict",
+          "warning",
+          "A shared-tooltip trigger has a non-empty title attribute, which may create a second native tooltip.",
+          trigger
+        )
+      );
+    }
+
+    let resolved = "";
+
+    try {
+      resolved = String(
+        options.getContent(trigger) ?? ""
+      ).trim();
+    } catch {
+      resolved = "";
+    }
+
+    if (!resolved) {
+      findings.push(
+        finding(
+          container,
+          "shared-content-empty",
+          "warning",
+          "A matching shared-tooltip trigger resolves to empty visual tooltip content.",
+          trigger
+        )
+      );
+    }
+  }
+
+  if (
+    options.tooltip &&
+    (
+      options.tooltip.matches(
+        INTERACTIVE_CONTENT_SELECTOR
+      ) ||
+      options.tooltip.querySelector(
+        INTERACTIVE_CONTENT_SELECTOR
+      )
+    )
+  ) {
+    findings.push(
+      finding(
+        container,
+        "tooltip-interactive-content",
+        "error",
+        "Shared tooltip content must remain non-interactive.",
+        options.tooltip
+      )
+    );
+  }
 
   return Object.freeze(findings);
 }
