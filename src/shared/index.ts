@@ -321,13 +321,37 @@ function ensureSharedTooltipId(
     };
   }
 
-  generatedTooltipId += 1;
-  tooltip.id = `a11y-tooltip-shared-${generatedTooltipId}`;
+  let candidate = "";
+
+  do {
+    generatedTooltipId += 1;
+    candidate =
+      `a11y-tooltip-shared-${generatedTooltipId}`;
+  } while (
+    tooltip.ownerDocument.getElementById(candidate)
+  );
+
+  tooltip.id = candidate;
 
   return {
     id: tooltip.id,
     generated: true
   };
+}
+
+function hasDuplicateId(
+  element: HTMLElement
+): boolean {
+  const id = element.id.trim();
+
+  if (!id) {
+    return false;
+  }
+
+  return Array.from(
+    element.ownerDocument.querySelectorAll("[id]")
+  ).filter((candidate) => candidate.id === id)
+    .length > 1;
 }
 
 function parseOffset(element: HTMLElement): number {
@@ -791,6 +815,24 @@ implements SharedTooltipController {
   }
 
   private init(): void {
+    if (this.options.semantics === "describedby") {
+      const { id, generated } =
+        ensureSharedTooltipId(this.tooltip);
+
+      if (hasDuplicateId(this.tooltip)) {
+        if (generated) {
+          this.tooltip.removeAttribute("id");
+        }
+
+        throw new TypeError(
+          `Shared tooltip id "${id}" must be unique when semantics is "describedby".`
+        );
+      }
+
+      this.descriptionTooltipId = id;
+      this.generatedDescriptionTooltipId = generated;
+    }
+
     const rootAttribute =
       ROOT_SELECTOR.slice(1, -1);
 
@@ -808,12 +850,6 @@ implements SharedTooltipController {
       this.tooltip.setAttribute("aria-hidden", "true");
     } else {
       this.tooltip.removeAttribute("aria-hidden");
-
-      const { id, generated } =
-        ensureSharedTooltipId(this.tooltip);
-
-      this.descriptionTooltipId = id;
-      this.generatedDescriptionTooltipId = generated;
     }
 
     this.tooltip.setAttribute(
