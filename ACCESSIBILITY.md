@@ -58,6 +58,22 @@ The addon can improve tooltip visibility near viewport/containing-block edges,
 including at increased zoom, but it does not make the tooltip a top-layer
 element and therefore does not bypass every ancestor clipping context.
 
+## Selector adapter factory
+
+`createSelectorAdapter()` changes markup resolution only.
+
+- It adds no keyboard behavior, focus movement, live region, storage, observer,
+  analytics, or network work.
+- It does not change the tooltip role or accessible-description model.
+- The core still validates that the resolved trigger is keyboard-focusable.
+- The core still rejects interactive tooltip content.
+- Selector resolution is scoped to the supplied root and requires exactly one
+  distinct trigger and tooltip `HTMLElement`.
+- Invalid, missing, or duplicate matches fail resolution rather than guessing.
+
+Accessibility therefore depends on the same core tooltip contract after the
+custom markup has been resolved.
+
 ## Manual release checks
 
 | Check | Environment | Status |
