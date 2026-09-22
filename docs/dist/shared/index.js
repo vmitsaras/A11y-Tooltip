@@ -11,6 +11,15 @@ function positionDelta(from, to) {
 		y: from.top - to.top
 	};
 }
+function anchoredLayoutPosition(tooltip, view) {
+	const style = view.getComputedStyle(tooltip);
+	const positionAnchor = style.getPropertyValue("position-anchor");
+	if (style.position !== "fixed" || tooltip.offsetParent !== null || !positionAnchor || positionAnchor === "auto" || style.translate !== "none" && Boolean(style.translate)) return null;
+	return {
+		left: tooltip.offsetLeft,
+		top: tooltip.offsetTop
+	};
+}
 /**
 * Creates a zero-dependency WAAPI FLIP controller for shared-tooltip
 * retargeting.
@@ -58,10 +67,9 @@ function createWaapiFlipMotionController(options) {
 			const holdAtOrigin = () => {
 				releaseHold();
 				const current = tooltip.getBoundingClientRect();
-				const style = view.getComputedStyle(tooltip);
-				const useLayoutOffsets = style.position === "fixed" && tooltip.offsetParent === null && Boolean(style.getPropertyValue("position-anchor")) && style.getPropertyValue("position-anchor") !== "auto" && (style.translate === "none" || !style.translate);
-				const x = before.left - (useLayoutOffsets ? tooltip.offsetLeft : current.left);
-				const y = before.top - (useLayoutOffsets ? tooltip.offsetTop : current.top);
+				const layout = anchoredLayoutPosition(tooltip, view);
+				const x = before.left - (layout?.left ?? current.left);
+				const y = before.top - (layout?.top ?? current.top);
 				tooltip.style.setProperty("translate", `${x}px ${y}px`);
 				restoreTranslate = () => {
 					if (previousTranslate) tooltip.style.setProperty("translate", previousTranslate, previousPriority);
@@ -78,7 +86,9 @@ function createWaapiFlipMotionController(options) {
 					releaseHold();
 					if (!tooltip.isConnected || tooltip.hidden) return;
 					const after = tooltip.getBoundingClientRect();
-					const { x, y } = positionDelta(before, after);
+					const layout = anchoredLayoutPosition(tooltip, view);
+					const destination = layout ? new DOMRect(layout.left, layout.top, after.width, after.height) : after;
+					const { x, y } = positionDelta(before, destination);
 					if (Math.abs(x) < .5 && Math.abs(y) < .5) return;
 					try {
 						const nextAnimation = tooltip.animate([{ transform: `translate(${x}px, ${y}px)` }, { transform: "translate(0, 0)" }], {

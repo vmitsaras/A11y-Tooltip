@@ -472,6 +472,7 @@ if (motionToolbar instanceof HTMLElement) {
   <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/Flip.min.js"></script>
 
   <script type="module">
+    import { attachSharedGsapMotion } from "./shared-gsap-motion.js";
     import { initTooltipsAll } from "./dist/index.js";
     import {
       createSharedTooltip,
@@ -534,113 +535,6 @@ if (motionToolbar instanceof HTMLElement) {
     let detachSharedGsapMotion = null;
     let activeSharedMotion = "move";
 
-    function attachSharedGsapMotion(controller) {
-      if (!gsap || !Flip) {
-        return () => {};
-      }
-
-      const reducedMotion = matchMedia(
-        "(prefers-reduced-motion: reduce)"
-      );
-
-      let previousState = null;
-
-      const handleBeforeRetarget = (event) => {
-        if (
-          event.detail?.controller !== controller ||
-          reducedMotion.matches
-        ) {
-          previousState = null;
-          return;
-        }
-
-        previousState = Flip.getState(
-          controller.tooltip,
-          {
-            simple: true,
-            kill: false
-          }
-        );
-
-        Flip.killFlipsOf(
-          controller.tooltip,
-          false
-        );
-      };
-
-      const handleRetarget = (event) => {
-        if (
-          event.detail?.controller !== controller ||
-          !previousState
-        ) {
-          return;
-        }
-
-        const state = previousState;
-        previousState = null;
-
-        Flip.from(state, {
-          targets: controller.tooltip,
-          duration: 0.22,
-          ease: "power2.out",
-          simple: true,
-          scale: false
-        });
-      };
-
-      const handleClose = (event) => {
-        if (event.detail?.controller !== controller) {
-          return;
-        }
-
-        previousState = null;
-
-        Flip.killFlipsOf(
-          controller.tooltip,
-          false
-        );
-      };
-
-      controller.container.addEventListener(
-        sharedTooltipEvents.beforeRetarget,
-        handleBeforeRetarget
-      );
-
-      controller.container.addEventListener(
-        sharedTooltipEvents.retarget,
-        handleRetarget
-      );
-
-      controller.container.addEventListener(
-        sharedTooltipEvents.close,
-        handleClose
-      );
-
-      return () => {
-        previousState = null;
-
-        controller.container.removeEventListener(
-          sharedTooltipEvents.beforeRetarget,
-          handleBeforeRetarget
-        );
-
-        controller.container.removeEventListener(
-          sharedTooltipEvents.retarget,
-          handleRetarget
-        );
-
-        controller.container.removeEventListener(
-          sharedTooltipEvents.close,
-          handleClose
-        );
-
-        Flip.killFlipsOf(
-          controller.tooltip,
-          false
-        );
-      };
-    }
-
     function setSharedMotion(nextMotion) {
       if (!(sharedMotionToolbar instanceof HTMLElement)) {
         return;
@@ -689,7 +583,7 @@ if (motionToolbar instanceof HTMLElement) {
       if (nextMotion === "gsap") {
         detachSharedGsapMotion =
           attachSharedGsapMotion(
-            sharedMotionController
+            sharedMotionController, gsap, Flip, sharedTooltipEvents
           );
       }
     }

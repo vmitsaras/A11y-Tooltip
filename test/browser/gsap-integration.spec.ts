@@ -107,6 +107,8 @@ test("main demo compares native move and optional GSAP Flip", async ({
 
   await expect(tooltip).toHaveText("Archive");
 
+  await expect.poll(() => page.evaluate(() => window.__gsapFlipFrom ?? 0)).toBeGreaterThan(0);
+
   const gsapState = await page.evaluate(() => ({
     registered: window.__gsapRegistered,
     getState: window.__gsapFlipGetState,
@@ -136,6 +138,8 @@ test("standalone GSAP example uses shared retarget lifecycle", async ({
   await expect(
     page.locator("[data-a11y-shared-tooltip-content]")
   ).toHaveText("Italic");
+
+  await expect.poll(() => page.evaluate(() => window.__gsapFlipFrom ?? 0)).toBeGreaterThan(0);
 
   const state = await page.evaluate(() => ({
     open: window.__sharedGsapTooltip?.isOpen,

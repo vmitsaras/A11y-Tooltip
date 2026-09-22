@@ -152,6 +152,7 @@ retarget
   <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/Flip.min.js"></script>
 
   <script type="module">
+    import { attachSharedGsapMotion } from "./motion.js";
     import {
       createSharedTooltip,
       sharedTooltipEvents
@@ -190,84 +191,7 @@ retarget
     } else {
       gsap.registerPlugin(Flip);
 
-      const reducedMotion = matchMedia(
-        "(prefers-reduced-motion: reduce)"
-      );
-
-      let previousState = null;
-
-      toolbar.addEventListener(
-        sharedTooltipEvents.beforeRetarget,
-        (event) => {
-          if (
-            event.detail?.controller !== controller ||
-            reducedMotion.matches
-          ) {
-            previousState = null;
-            return;
-          }
-
-          previousState = Flip.getState(
-            controller.tooltip,
-            {
-              simple: true,
-              kill: false
-            }
-          );
-
-          // Stop an interrupted Flip without forcing it to completion.
-          // The captured state represents the current rendered geometry.
-          Flip.killFlipsOf(
-            controller.tooltip,
-            false
-          );
-        }
-      );
-
-      toolbar.addEventListener(
-        sharedTooltipEvents.retarget,
-        (event) => {
-          if (
-            event.detail?.controller !== controller ||
-            !previousState
-          ) {
-            return;
-          }
-
-          const state = previousState;
-          previousState = null;
-
-          Flip.from(state, {
-            targets: controller.tooltip,
-            duration: 0.22,
-            ease: "power2.out",
-            simple: true,
-            scale: false
-          });
-        }
-      );
-
-      const cancelFlip = (event) => {
-        if (event.detail?.controller !== controller) {
-          return;
-        }
-
-        previousState = null;
-        Flip.killFlipsOf(
-          controller.tooltip,
-          false
-        );
-      };
-
-      toolbar.addEventListener(
-        sharedTooltipEvents.close,
-        cancelFlip
-      );
-
-      toolbar.addEventListener(
-        sharedTooltipEvents.destroy,
-        cancelFlip
-      );
+      attachSharedGsapMotion(controller, gsap, Flip, sharedTooltipEvents);
     }
 
     window.__sharedGsapTooltip = controller;
