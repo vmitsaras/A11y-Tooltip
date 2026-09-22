@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>A11y Tooltip — Diagnostics example</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 4rem 1.5rem;
+      font-family: system-ui, sans-serif;
+      color: #15181d;
+      background: #f7f8fa;
+    }
+
+    main {
+      max-width: 52rem;
+      margin-inline: auto;
+    }
+
+    .demo-grid {
+      display: grid;
+      gap: 1rem;
+      margin-block: 2rem;
+    }
+
+    .demo-card {
+      padding: 1rem;
+      border: 1px solid #c7ccd4;
+      border-radius: 0.75rem;
+      background: white;
+    }
+
+    .diagnostic-list {
+      display: grid;
+      gap: 0.75rem;
+      padding: 0;
+      list-style: none;
+    }
+
+    .diagnostic-list li {
+      padding: 0.75rem 1rem;
+      border-inline-start: 0.25rem solid currentColor;
+      background: white;
+    }
+
+    code {
+      font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Tooltip diagnostics</h1>
+
+    <p>
+      The scanner is explicit and read-only. These examples intentionally
+      contain integration mistakes so the diagnostics API has something to
+      report.
+    </p>
+
+    <div class="demo-grid">
+      <section class="demo-card">
+        <h2>Native title conflict</h2>
+        <span data-a11y-tooltip>
+          <button
+            data-a11y-tooltip-trigger
+            title="Shipping information"
+          >
+            Shipping
+          </button>
+          <span data-a11y-tooltip-content>
+            Free shipping over €50.
+          </span>
+        </span>
+      </section>
+
+      <section class="demo-card">
+        <h2>Hidden no-JavaScript fallback</h2>
+        <span data-a11y-tooltip>
+          <button data-a11y-tooltip-trigger>
+            Refunds
+          </button>
+          <span data-a11y-tooltip-content hidden>
+            Refunds return to the original payment method.
+          </span>
+        </span>
+      </section>
+
+      <section class="demo-card">
+        <h2>Interactive tooltip content</h2>
+        <span data-a11y-tooltip>
+          <button data-a11y-tooltip-trigger>
+            Account help
+          </button>
+          <span data-a11y-tooltip-content>
+            <a href="#account">Open account settings</a>
+          </span>
+        </span>
+      </section>
+    </div>
+
+    <h2>Findings</h2>
+    <ul class="diagnostic-list" data-findings></ul>
+  </main>
+
+  <script type="module">
+    import {
+      scanTooltips
+    } from "../../dist/diagnostics/index.js";
+
+    const output = document.querySelector("[data-findings]");
+    const findings = scanTooltips();
+
+    if (output instanceof HTMLUListElement) {
+      for (const finding of findings) {
+        const item = document.createElement("li");
+        const code = document.createElement("code");
+        const text = document.createTextNode(
+          ` — ${finding.severity}: ${finding.message}`
+        );
+
+        code.textContent = finding.code;
+        item.append(code, text);
+        output.append(item);
+      }
+    }
+  </script>
+</body>
+</html>
