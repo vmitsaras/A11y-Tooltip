@@ -420,7 +420,6 @@ implements SharedTooltipController {
   private readonly nativeHintElement: HintPopoverElement | null;
 
   private descriptionTooltipId: string | null = null;
-  private generatedDescriptionTooltipId = false;
 
   private openState = false;
   private destroyed = false;
@@ -806,7 +805,6 @@ implements SharedTooltipController {
     this.dismissedTrigger = null;
     this.hoveringTooltip = false;
     this.descriptionTooltipId = null;
-    this.generatedDescriptionTooltipId = false;
     this.destroyed = true;
 
     INSTANCES.delete(this.container);
@@ -830,7 +828,6 @@ implements SharedTooltipController {
       }
 
       this.descriptionTooltipId = id;
-      this.generatedDescriptionTooltipId = generated;
     }
 
     const rootAttribute =
