@@ -53,3 +53,13 @@ export type {
   OverflowTarget,
   OverflowTargetResolver
 } from "./overflow-only.js";
+
+export {
+  ANCHOR_POSITIONING_FALLBACKS,
+  createAnchorPositioningAddon
+} from "./anchor-positioning.js";
+
+export type {
+  AnchorPositioningAddonOptions,
+  AnchorPositioningFallback
+} from "./anchor-positioning.js";
