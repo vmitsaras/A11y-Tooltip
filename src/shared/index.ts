@@ -13,10 +13,18 @@ import {
   type AnchorPositioningFallback,
   type InlineStyleSnapshot
 } from "../internal/anchor-positioning.js";
+import {
+  isPopoverOpen,
+  supportsHintPopover,
+  type HintPopoverElement,
+  type PopoverToggleEvent
+} from "../internal/hint-popover.js";
 
 const COMPONENT_NAME = "a11y-tooltip-shared";
 const ROOT_SELECTOR = "[data-a11y-shared-tooltip]";
 const CONTENT_ATTRIBUTE = "data-a11y-shared-tooltip-content";
+const HINT_ROOT_ATTRIBUTE =
+  "data-a11y-shared-tooltip-hint-popover";
 
 const CLASSES = Object.freeze({
   initialized: "is-shared-tooltip-initialized",
@@ -56,6 +64,24 @@ export type SharedTooltipReason =
 export type SharedTooltipPositionFallback =
   AnchorPositioningFallback;
 
+export const SHARED_TOOLTIP_RENDER_MODES =
+  Object.freeze([
+    "anchored",
+    "hint-popover"
+  ] as const);
+
+export type SharedTooltipRenderMode =
+  (typeof SHARED_TOOLTIP_RENDER_MODES)[number];
+
+export const SHARED_TOOLTIP_SEMANTICS =
+  Object.freeze([
+    "visual-only",
+    "describedby"
+  ] as const);
+
+export type SharedTooltipSemantics =
+  (typeof SHARED_TOOLTIP_SEMANTICS)[number];
+
 export interface SharedTooltipOptions {
   /**
    * Selector for delegated tooltip triggers inside the controller container.
@@ -82,6 +108,18 @@ export interface SharedTooltipOptions {
    * CSS Anchor Positioning fallback tactics. Defaults are placement-aware.
    */
   fallbacks?: readonly SharedTooltipPositionFallback[];
+  /**
+   * Experimental rendering mode. "hint-popover" enters the top layer when
+   * both popover="hint" and the required Anchor Positioning features exist.
+   * Unsupported browsers fall back to anchored rendering.
+   */
+  renderMode?: SharedTooltipRenderMode;
+  /**
+   * Experimental semantics mode. "describedby" temporarily appends the
+   * shared tooltip id to only the active trigger's aria-describedby tokens.
+   * The default remains visual-only.
+   */
+  semantics?: SharedTooltipSemantics;
 }
 
 interface ResolvedSharedTooltipOptions {
@@ -94,6 +132,8 @@ interface ResolvedSharedTooltipOptions {
   hideDelay: number;
   placement: TooltipPlacement;
   fallbacks: readonly SharedTooltipPositionFallback[];
+  renderMode: SharedTooltipRenderMode;
+  semantics: SharedTooltipSemantics;
 }
 
 export interface SharedTooltipController {
@@ -101,6 +141,9 @@ export interface SharedTooltipController {
   readonly tooltip: HTMLElement;
   readonly activeTrigger: HTMLElement | null;
   readonly isOpen: boolean;
+  readonly renderMode: SharedTooltipRenderMode;
+  readonly semantics: SharedTooltipSemantics;
+  readonly usesNativeHint: boolean;
   showFor(
     trigger: HTMLElement,
     reason?: SharedTooltipOpenReason
@@ -123,6 +166,8 @@ interface AuthoredTooltipSnapshot {
   role: string | null;
   ariaHidden: string | null;
   placement: string | null;
+  id: string | null;
+  popover: string | null;
   hidden: HTMLElement["hidden"];
   style: string | null;
 }
@@ -132,10 +177,19 @@ interface TriggerAnchorState {
   anchorName: InlineStyleSnapshot;
 }
 
+interface TriggerDescriptionState {
+  trigger: HTMLElement;
+  describedBy: string | null;
+}
+
+let generatedTooltipId = 0;
+
 const DEFAULTS = Object.freeze({
   showDelay: 180,
   hideDelay: 100,
-  placement: "top" as TooltipPlacement
+  placement: "top" as TooltipPlacement,
+  renderMode: "anchored" as SharedTooltipRenderMode,
+  semantics: "visual-only" as SharedTooltipSemantics
 });
 
 const INSTANCES =
