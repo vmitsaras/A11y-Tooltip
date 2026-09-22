@@ -489,12 +489,21 @@ implements SharedTooltipController {
       return false;
     }
 
+    if (
+      !containsNode(
+        this.container,
+        this.currentTrigger
+      )
+    ) {
+      return this.close("leave");
+    }
+
     const content = this.resolveContent(
       this.currentTrigger
     );
 
     if (!content) {
-      return this.close("api");
+      return this.close("content-empty");
     }
 
     this.tooltip.textContent = content;
