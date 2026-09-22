@@ -42,6 +42,47 @@ test("focus opens a native hint and keeps focus on the trigger", async ({
   await expect(trigger).toBeFocused();
 });
 
+test("pointer can move from trigger onto the top-layer tooltip", async ({
+  page
+}) => {
+  const root = page.locator('[data-hint-root="first"]');
+  const trigger = root.locator("[data-a11y-tooltip-trigger]");
+  const tooltip = root.locator("[data-a11y-tooltip-content]");
+
+  await trigger.hover();
+  await expect(root).toHaveClass(/is-open/u);
+
+  await tooltip.hover();
+
+  await expect(root).toHaveClass(/is-open/u);
+
+  expect(
+    await tooltip.evaluate((element) =>
+      element.matches(":popover-open")
+    )
+  ).toBe(true);
+});
+
+test("Escape closes native and core state without moving focus", async ({
+  page
+}) => {
+  const root = page.locator('[data-hint-root="first"]');
+  const trigger = root.locator("[data-a11y-tooltip-trigger]");
+  const tooltip = root.locator("[data-a11y-tooltip-content]");
+
+  await trigger.focus();
+  await page.keyboard.press("Escape");
+
+  await expect(root).not.toHaveClass(/is-open/u);
+  await expect(trigger).toBeFocused();
+
+  expect(
+    await tooltip.evaluate((element) =>
+      element.matches(":popover-open")
+    )
+  ).toBe(false);
+});
+
 test("core close removes the native popover from the top layer", async ({
   page
 }) => {
