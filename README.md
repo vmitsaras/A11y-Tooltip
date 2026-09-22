@@ -96,7 +96,7 @@ Lifecycle events bubble from the root:
 - `a11y-tooltip:close`
 - `a11y-tooltip:destroy`
 
-Event detail includes the instance and, when relevant, the open/close reason.
+Event detail includes the instance and, when relevant, the open/close reason. Close reasons include `platform` when a native rendering addon is dismissed by the browser.
 
 ## Addons
 
@@ -218,6 +218,66 @@ The addon:
 This improves edge placement but is not a top-layer solution. Ancestor
 `overflow: hidden` / `clip` constraints may still require a different
 overlay architecture.
+
+## Native hint popover addon
+
+`createHintPopoverAddon()` is an experimental rendering bridge that promotes
+the existing tooltip into the browser top layer using `popover="hint"`.
+
+```ts
+import { createTooltip } from "a11y-tooltip";
+import {
+  createHintPopoverAddon
+} from "a11y-tooltip/addons";
+
+createTooltip(root, {
+  addons: [
+    createHintPopoverAddon()
+  ]
+});
+```
+
+A11y Tooltip remains authoritative for opening, delays, focus/hover activation,
+ARIA, and lifecycle events. Native platform closes — including light dismiss,
+close requests, and another hint taking precedence — synchronize back into the
+core with the `"platform"` close reason.
+
+The addon activates only when the browser supports both the native
+`popover="hint"` state and the CSS Anchor Positioning features used by the
+package. Otherwise it performs no enhancement and the ordinary tooltip
+continues unchanged.
+
+The bridge:
+
+- calls `showPopover({ source: trigger })` only after the core has opened;
+- blocks direct native opening while the core is closed;
+- synchronizes native closing back to `instance.close("platform")`;
+- reuses the existing Anchor Positioning implementation;
+- enters the top layer without reparenting the DOM;
+- restores the authored `popover` attribute and anchor styles in
+  `destroy()`;
+- does not add `popovertarget`, click-to-toggle behavior, interactive tooltip
+  content, or new accessibility relationships.
+
+If custom Anchor Positioning fallbacks are needed, place
+`createAnchorPositioningAddon({...})` before `createHintPopoverAddon()` in
+the addon list so the explicit positioning configuration becomes the shared
+setup.
+
+```ts
+createTooltip(root, {
+  addons: [
+    createAnchorPositioningAddon({
+      fallbacks: ["flip-start", "flip-block"]
+    }),
+    createHintPopoverAddon()
+  ]
+});
+```
+
+Because native popovers introduce a second browser-managed state system, this
+addon is covered by real Chromium, Firefox, and WebKit tests in addition to the
+DOM unit suite.
 
 ## Adapters
 
@@ -346,6 +406,7 @@ See [ACCESSIBILITY.md](./ACCESSIBILITY.md) for the verification matrix and known
 - `examples/anchor-positioning/`
 - `examples/selector-adapter/`
 - `examples/diagnostics/`
+- `examples/hint-popover/`
 - GitHub Pages demo: `docs/` when Pages is configured to serve `/docs` from `main`.
 
 ## Docs metadata
