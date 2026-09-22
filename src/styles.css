@@ -4,6 +4,7 @@
   --a11y-tooltip-border-color: #303640;
   --a11y-tooltip-radius: 0.5rem;
   --a11y-tooltip-shadow: 0 0.75rem 2rem rgb(0 0 0 / 0.18);
+  --a11y-tooltip-inline-size: 16rem;
   --a11y-tooltip-max-inline-size: 22rem;
   --a11y-tooltip-offset: 0.625rem;
   --a11y-tooltip-padding-block: 0.5rem;
@@ -15,6 +16,7 @@
   --_border-color: var(--a11y-tooltip-border-color, #303640);
   --_radius: var(--a11y-tooltip-radius, 0.5rem);
   --_shadow: var(--a11y-tooltip-shadow, 0 0.75rem 2rem rgb(0 0 0 / 0.18));
+  --_inline-size: var(--a11y-tooltip-inline-size, 16rem);
   --_max-inline-size: var(--a11y-tooltip-max-inline-size, 22rem);
   --_offset: var(--a11y-tooltip-offset, 0.625rem);
   --_padding-block: var(--a11y-tooltip-padding-block, 0.5rem);
@@ -46,6 +48,7 @@
   position: absolute;
   z-index: 1000;
   box-sizing: border-box;
+  inline-size: min(var(--_inline-size), var(--_max-inline-size), calc(100vw - 2rem));
   max-inline-size: min(var(--_max-inline-size), calc(100vw - 2rem));
   padding-block: var(--_padding-block);
   padding-inline: var(--_padding-inline);
