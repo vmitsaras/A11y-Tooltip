@@ -63,3 +63,7 @@ export type {
   AnchorPositioningAddonOptions,
   AnchorPositioningFallback
 } from "./anchor-positioning.js";
+
+export {
+  createHintPopoverAddon
+} from "./hint-popover.js";
