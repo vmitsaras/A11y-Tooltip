@@ -3,6 +3,8 @@ import { expect, test } from "@playwright/test";
 interface SharedTooltipTestController {
   readonly activeTrigger: HTMLElement | null;
   readonly isOpen: boolean;
+  readonly semantics: "visual-only" | "describedby";
+  readonly usesNativeHint: boolean;
   refresh(): boolean;
   destroy(): void;
 }
@@ -10,6 +12,7 @@ interface SharedTooltipTestController {
 declare global {
   interface Window {
     __sharedTooltip: SharedTooltipTestController;
+    __sharedHintSources: Array<string | null>;
   }
 }
 
@@ -280,3 +283,289 @@ test("destroy removes the generated tooltip and delegated state", async ({
     "data-a11y-shared-tooltip"
   );
 });
+
+test("experimental describedby mode exposes only the active shared description", async ({
+  page
+}) => {
+  await page.goto(
+    "/examples/shared-tooltip/?count=3&semantics=describedby"
+  );
+
+  const triggers = page.locator("[data-tooltip-text]");
+  const first = triggers.nth(0);
+  const second = triggers.nth(1);
+  const tooltip = page.locator(
+    "[data-a11y-shared-tooltip-content]"
+  );
+
+  await page.evaluate(() => {
+    const description = document.createElement("span");
+    description.id = "existing-help";
+    description.hidden = true;
+    description.textContent = "Existing description";
+    document.body.append(description);
+
+    document
+      .querySelector("[data-tooltip-text]")
+      ?.setAttribute(
+        "aria-describedby",
+        "existing-help"
+      );
+  });
+
+  await first.focus();
+
+  const tooltipId = await tooltip.getAttribute("id");
+
+  expect(tooltipId).toBeTruthy();
+
+  await expect(first).toHaveAttribute(
+    "aria-describedby",
+    `existing-help ${tooltipId}`
+  );
+
+  await expect(first).toHaveAccessibleDescription(
+    "Existing description Command 1"
+  );
+
+  await second.focus();
+
+  await expect(first).toHaveAttribute(
+    "aria-describedby",
+    "existing-help"
+  );
+
+  await expect(second).toHaveAttribute(
+    "aria-describedby",
+    tooltipId ?? ""
+  );
+
+  await expect(second).toHaveAccessibleDescription(
+    "Command 2"
+  );
+
+  await page.keyboard.press("Escape");
+
+  await expect(second).not.toHaveAttribute(
+    "aria-describedby"
+  );
+  await expect(tooltip).toBeHidden();
+});
+
+test("experimental native hint mode enters the top layer", async ({
+  page
+}) => {
+  await page.goto(
+    "/examples/shared-tooltip/?count=3&render=hint"
+  );
+
+  const toolbar = page.locator(
+    "[data-shared-toolbar]"
+  );
+  const first = page.locator(
+    "[data-tooltip-text]"
+  ).nth(0);
+  const tooltip = page.locator(
+    "[data-a11y-shared-tooltip-content]"
+  );
+
+  await expect(toolbar).toHaveAttribute(
+    "data-native-hint",
+    "true"
+  );
+
+  await first.focus();
+
+  await expect(tooltip).toHaveAttribute(
+    "popover",
+    "hint"
+  );
+
+  expect(
+    await tooltip.evaluate((element) =>
+      element.matches(":popover-open")
+    )
+  ).toBe(true);
+
+  expect(
+    await page.evaluate(() =>
+      window.__sharedTooltip.usesNativeHint
+    )
+  ).toBe(true);
+});
+
+test("native hint retargeting updates the popover source without closing controller state", async ({
+  page
+}) => {
+  await page.goto(
+    "/examples/shared-tooltip/?count=3&render=hint"
+  );
+
+  await page.evaluate(() => {
+    const tooltip = document.querySelector(
+      "[data-a11y-shared-tooltip-content]"
+    );
+
+    window.__sharedHintSources = [];
+
+    tooltip?.addEventListener("toggle", (event) => {
+      const toggleEvent = event as ToggleEvent & {
+        source?: Element | null;
+      };
+
+      if (toggleEvent.newState !== "open") {
+        return;
+      }
+
+      const source =
+        toggleEvent.source instanceof HTMLElement
+          ? toggleEvent.source.dataset.triggerIndex ?? null
+          : null;
+
+      window.__sharedHintSources.push(source);
+    });
+  });
+
+  const triggers = page.locator("[data-tooltip-text]");
+  const tooltip = page.locator(
+    "[data-a11y-shared-tooltip-content]"
+  );
+
+  await triggers.nth(0).focus();
+  await triggers.nth(1).focus();
+
+  await expect.poll(async () =>
+    page.evaluate(() =>
+      window.__sharedHintSources.at(-1)
+    )
+  ).toBe("2");
+
+  expect(
+    await tooltip.evaluate((element) =>
+      element.matches(":popover-open")
+    )
+  ).toBe(true);
+
+  expect(
+    await page.evaluate(() =>
+      window.__sharedTooltip.isOpen
+    )
+  ).toBe(true);
+});
+
+test("native platform close synchronizes controller and describedby ownership", async ({
+  page
+}) => {
+  await page.goto(
+    "/examples/shared-tooltip/?count=3&render=hint&semantics=describedby"
+  );
+
+  const first = page.locator(
+    "[data-tooltip-text]"
+  ).nth(0);
+  const tooltip = page.locator(
+    "[data-a11y-shared-tooltip-content]"
+  );
+
+  await first.focus();
+
+  await expect(first).toHaveAttribute(
+    "aria-describedby",
+    /a11y-tooltip-shared-/u
+  );
+
+  await tooltip.evaluate((element) => {
+    if (element instanceof HTMLElement) {
+      element.hidePopover();
+    }
+  });
+
+  await expect.poll(async () =>
+    page.evaluate(() =>
+      window.__sharedTooltip.isOpen
+    )
+  ).toBe(false);
+
+  await expect(first).not.toHaveAttribute(
+    "aria-describedby"
+  );
+
+  expect(
+    await tooltip.evaluate((element) =>
+      element.matches(":popover-open")
+    )
+  ).toBe(false);
+});
+
+test("shared hint does not close an unrelated auto popover", async ({
+  page
+}) => {
+  await page.goto(
+    "/examples/shared-tooltip/?count=3&render=hint"
+  );
+
+  await page.evaluate(() => {
+    const auto = document.createElement("div");
+    auto.id = "shared-auto-popover";
+    auto.setAttribute("popover", "auto");
+    auto.textContent = "Auto popover";
+    document.body.append(auto);
+    auto.showPopover();
+  });
+
+  const auto = page.locator(
+    "#shared-auto-popover"
+  );
+  const first = page.locator(
+    "[data-tooltip-text]"
+  ).nth(0);
+
+  expect(
+    await auto.evaluate((element) =>
+      element.matches(":popover-open")
+    )
+  ).toBe(true);
+
+  await first.focus();
+
+  expect(
+    await auto.evaluate((element) =>
+      element.matches(":popover-open")
+    )
+  ).toBe(true);
+});
+
+test("direct native shared opening cannot bypass controller state", async ({
+  page
+}) => {
+  await page.goto(
+    "/examples/shared-tooltip/?count=3&render=hint"
+  );
+
+  const tooltip = page.locator(
+    "[data-a11y-shared-tooltip-content]"
+  );
+
+  const shown = await tooltip.evaluate((element) => {
+    if (!(element instanceof HTMLElement)) {
+      return false;
+    }
+
+    try {
+      element.hidden = false;
+      element.showPopover();
+      return element.matches(":popover-open");
+    } catch {
+      return false;
+    }
+  });
+
+  expect(shown).toBe(false);
+
+  expect(
+    await page.evaluate(() =>
+      window.__sharedTooltip.isOpen
+    )
+  ).toBe(false);
+});
+
