@@ -522,6 +522,87 @@ The same motion path is browser-tested with anchored rendering, experimental
 `semantics: "describedby"`, and experimental native `popover="hint"`
 rendering.
 
+### Optional GSAP Flip integration
+
+Applications that already use GSAP can leave the built-in motion disabled and
+animate the Shared Tooltip Controller's public retarget lifecycle:
+
+```ts
+import gsap from "gsap";
+import Flip from "gsap/Flip";
+
+import {
+  createSharedTooltip,
+  sharedTooltipEvents
+} from "a11y-tooltip/shared";
+
+gsap.registerPlugin(Flip);
+
+const controller = createSharedTooltip(toolbar, {
+  triggers: "[data-tooltip-text]",
+  getContent(trigger) {
+    return trigger.dataset.tooltipText ?? "";
+  },
+
+  // Do not run WAAPI and GSAP motion at the same time.
+  motion: "none"
+});
+
+let state = null;
+
+toolbar.addEventListener(
+  sharedTooltipEvents.beforeRetarget,
+  (event) => {
+    if (event.detail.controller !== controller) return;
+
+    state = Flip.getState(
+      controller.tooltip,
+      {
+        simple: true,
+        kill: false
+      }
+    );
+
+    Flip.killFlipsOf(
+      controller.tooltip,
+      false
+    );
+  }
+);
+
+toolbar.addEventListener(
+  sharedTooltipEvents.retarget,
+  (event) => {
+    if (
+      event.detail.controller !== controller ||
+      !state
+    ) {
+      return;
+    }
+
+    const previousState = state;
+    state = null;
+
+    Flip.from(previousState, {
+      targets: controller.tooltip,
+      duration: 0.22,
+      ease: "power2.out",
+      simple: true,
+      scale: false
+    });
+  }
+);
+```
+
+The package does not import or depend on GSAP. This is an integration pattern
+for consumers that already use it. The example also checks
+`prefers-reduced-motion`, kills interrupted flips before the controller
+retargets, and cancels motion when the shared tooltip closes.
+
+See `examples/shared-tooltip-gsap/` for the complete npm/CDN example. The
+main GitHub Pages demo also compares **Still**, built-in **Move**, and
+**GSAP Flip** on the same toolbar.
+
 ## CSS
 
 The default stylesheet uses BEM classes for styling and `data-*` attributes for JavaScript hooks.
@@ -550,6 +631,7 @@ See [ACCESSIBILITY.md](./ACCESSIBILITY.md) for the verification matrix and known
 - `examples/diagnostics/`
 - `examples/hint-popover/`
 - `examples/shared-tooltip/`
+- `examples/shared-tooltip-gsap/`
 - GitHub Pages demo: `docs/` when Pages is configured to serve `/docs` from `main`.
 
 ## Docs metadata
