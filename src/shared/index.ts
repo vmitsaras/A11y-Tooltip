@@ -19,6 +19,10 @@ import {
   type HintPopoverElement,
   type PopoverToggleEvent
 } from "../internal/hint-popover.js";
+import {
+  createWaapiFlipMotionController,
+  type WaapiFlipMotionController
+} from "../internal/waapi-flip-motion.js";
 
 const COMPONENT_NAME = "a11y-tooltip-shared";
 const ROOT_SELECTOR = "[data-a11y-shared-tooltip]";
@@ -83,6 +87,15 @@ export const SHARED_TOOLTIP_SEMANTICS =
 export type SharedTooltipSemantics =
   (typeof SHARED_TOOLTIP_SEMANTICS)[number];
 
+export const SHARED_TOOLTIP_MOTIONS =
+  Object.freeze([
+    "none",
+    "move"
+  ] as const);
+
+export type SharedTooltipMotion =
+  (typeof SHARED_TOOLTIP_MOTIONS)[number];
+
 export interface SharedTooltipOptions {
   /**
    * Selector for delegated tooltip triggers inside the controller container.
@@ -121,6 +134,20 @@ export interface SharedTooltipOptions {
    * The default remains visual-only.
    */
   semantics?: SharedTooltipSemantics;
+  /**
+   * Retarget motion. "move" uses a zero-dependency WAAPI FLIP animation
+   * between the current visual position and the new anchored position.
+   * The default is "none".
+   */
+  motion?: SharedTooltipMotion;
+  /**
+   * Retarget animation duration in milliseconds. Defaults to 180.
+   */
+  motionDuration?: number;
+  /**
+   * WAAPI easing string used by motion="move".
+   */
+  motionEasing?: string;
 }
 
 interface ResolvedSharedTooltipOptions {
@@ -135,6 +162,9 @@ interface ResolvedSharedTooltipOptions {
   fallbacks: readonly SharedTooltipPositionFallback[];
   renderMode: SharedTooltipRenderMode;
   semantics: SharedTooltipSemantics;
+  motion: SharedTooltipMotion;
+  motionDuration: number;
+  motionEasing: string;
 }
 
 export interface SharedTooltipController {
@@ -144,6 +174,7 @@ export interface SharedTooltipController {
   readonly isOpen: boolean;
   readonly renderMode: SharedTooltipRenderMode;
   readonly semantics: SharedTooltipSemantics;
+  readonly motion: SharedTooltipMotion;
   readonly usesNativeHint: boolean;
   showFor(
     trigger: HTMLElement,
@@ -190,7 +221,10 @@ const DEFAULTS = Object.freeze({
   hideDelay: 100,
   placement: "top" as TooltipPlacement,
   renderMode: "anchored" as SharedTooltipRenderMode,
-  semantics: "visual-only" as SharedTooltipSemantics
+  semantics: "visual-only" as SharedTooltipSemantics,
+  motion: "none" as SharedTooltipMotion,
+  motionDuration: 180,
+  motionEasing: "cubic-bezier(0.2, 0.8, 0.2, 1)"
 });
 
 const INSTANCES =
