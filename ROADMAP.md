@@ -33,6 +33,15 @@
 - [x] ADDON-240 — CSS Anchor Positioning via `createAnchorPositioningAddon()`
 - [x] ADAPTER-220 — Selector adapter factory via `createSelectorAdapter()`
 - [x] DIAG-230 — Read-only integration diagnostics via `scanTooltipRoot()` and `scanTooltips()`
+- [x] ADDON-260 — Native `popover="hint"` bridge via `createHintPopoverAddon()` (experimental)
+  - [x] 260A — `platform` close reason + required dismissal invariant
+  - [x] 260B — exact hint + Anchor Positioning feature detection
+  - [x] 260C — core → native synchronization
+  - [x] 260D — native → core synchronization
+  - [x] 260E — shared Anchor Positioning setup
+  - [x] 260F — Chromium / Firefox / WebKit state-matrix tests
+  - [x] 260G — clipping + existing auto-popover example
+  - [ ] 260H — manual VoiceOver / NVDA / mobile AT verification
 
 Only after v0.1 runtime behavior is stable:
 
