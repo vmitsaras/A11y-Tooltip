@@ -78,7 +78,8 @@
       visual-only. Add <code>?render=hint</code> for experimental native
       <code>popover="hint"</code> rendering and
       <code>&amp;semantics=describedby</code> for experimental dynamic
-      <code>aria-describedby</code> ownership.
+      <code>aria-describedby</code> ownership, and
+      <code>&amp;motion=move</code> for native WAAPI FLIP retarget motion.
     </p>
 
     <p>
@@ -126,13 +127,30 @@
         ? "describedby"
         : "visual-only";
 
+    const motion =
+      params.get("motion") === "move"
+        ? "move"
+        : "none";
+
+    const requestedMotionDuration = Number(
+      params.get("motionDuration") ?? 180
+    );
+
+    const motionDuration =
+      Number.isFinite(requestedMotionDuration)
+        ? Math.min(
+            Math.max(requestedMotionDuration, 0),
+            2000
+          )
+        : 180;
+
     const modeSummary = document.querySelector(
       "[data-mode-summary]"
     );
 
     if (modeSummary instanceof HTMLElement) {
       modeSummary.textContent =
-        `${renderMode} · ${semantics}`;
+        `${renderMode} · ${semantics} · motion:${motion}`;
     }
     const count = Math.min(
       Math.max(Number.isFinite(requestedCount) ? requestedCount : 120, 1),
@@ -171,13 +189,17 @@
       showDelay: 0,
       hideDelay: 80,
       renderMode,
-      semantics
+      semantics,
+      motion,
+      motionDuration
     });
 
     toolbar.dataset.nativeHint =
       controller.usesNativeHint ? "true" : "false";
     toolbar.dataset.semantics =
       controller.semantics;
+    toolbar.dataset.motion =
+      controller.motion;
 
     window.__sharedTooltip = controller;
 
