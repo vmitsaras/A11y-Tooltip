@@ -4,6 +4,7 @@ import {
   type TooltipInstance,
   type TooltipLifecycleDetail
 } from "../index.js";
+import { supportsAnchorPositioning } from "../internal/anchor-positioning.js";
 import { setupAnchorPositioning } from "./anchor-positioning.js";
 
 const ROOT_ATTRIBUTE = "data-a11y-tooltip-hint-popover";
@@ -44,34 +45,6 @@ function supportsHintPopover(
   probe.setAttribute("popover", "hint");
 
   return probe.popover === "hint";
-}
-
-function supportsAnchorPositioning(
-  element: HTMLElement
-): boolean {
-  const css = element.ownerDocument.defaultView?.CSS;
-
-  if (!css || typeof css.supports !== "function") {
-    return false;
-  }
-
-  return (
-    css.supports(
-      "anchor-name: --a11y-tooltip-anchor"
-    ) &&
-    css.supports(
-      "position-anchor: --a11y-tooltip-anchor"
-    ) &&
-    css.supports(
-      "position-area: top span-all"
-    ) &&
-    css.supports(
-      "align-self: anchor-center"
-    ) &&
-    css.supports(
-      "position-try-fallbacks: flip-block"
-    )
-  );
 }
 
 function isPopoverOpen(element: HTMLElement): boolean {
