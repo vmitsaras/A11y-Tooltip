@@ -185,6 +185,38 @@ describe("createOverflowOnlyAddon", () => {
     expect(instance.isOpen).toBe(false);
   });
 
+  it("fails closed when target resolution throws", () => {
+    const root = renderTooltip();
+
+    const instance = createTooltip(root, {
+      addons: [
+        createOverflowOnlyAddon({
+          target: () => {
+            throw new Error("integration failure");
+          }
+        })
+      ]
+    });
+
+    expect(instance.open()).toBe(false);
+    expect(instance.isOpen).toBe(false);
+  });
+
+  it("fails closed for an invalid selector", () => {
+    const root = renderTooltip();
+
+    const instance = createTooltip(root, {
+      addons: [
+        createOverflowOnlyAddon({
+          target: "["
+        })
+      ]
+    });
+
+    expect(instance.open()).toBe(false);
+    expect(instance.isOpen).toBe(false);
+  });
+
   it("respects tolerance and removes its listener during destroy", () => {
     const root = renderTooltip();
     const trigger = root.querySelector("[data-a11y-tooltip-trigger]");
