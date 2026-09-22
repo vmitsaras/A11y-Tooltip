@@ -387,10 +387,15 @@ implements SharedTooltipController {
   private readonly authoredTooltipSnapshot:
     AuthoredTooltipSnapshot | null;
   private readonly originalRootAttribute: string | null;
+  private readonly originalHintRootAttribute: string | null;
   private readonly rootHadInitializedClass: boolean;
   private readonly rootHadOpenClass: boolean;
   private readonly anchorSupported: boolean;
   private readonly anchorName: string;
+  private readonly nativeHintElement: HintPopoverElement | null;
+
+  private descriptionTooltipId: string | null = null;
+  private generatedDescriptionTooltipId = false;
 
   private openState = false;
   private destroyed = false;
@@ -402,6 +407,8 @@ implements SharedTooltipController {
   private hoveringTooltip = false;
 
   private activeAnchorState: TriggerAnchorState | null = null;
+  private activeDescriptionState:
+    TriggerDescriptionState | null = null;
 
   private showTimer: number | null = null;
   private hideTimer: number | null = null;
@@ -449,6 +456,8 @@ implements SharedTooltipController {
 
     this.originalRootAttribute =
       container.getAttribute(ROOT_SELECTOR.slice(1, -1));
+    this.originalHintRootAttribute =
+      container.getAttribute(HINT_ROOT_ATTRIBUTE);
     this.rootHadInitializedClass =
       container.classList.contains(CLASSES.initialized);
     this.rootHadOpenClass =
@@ -459,6 +468,13 @@ implements SharedTooltipController {
     this.anchorName = createAnchorName(
       "--a11y-shared-tooltip-anchor"
     );
+
+    this.nativeHintElement =
+      this.options.renderMode === "hint-popover" &&
+      this.anchorSupported &&
+      supportsHintPopover(this.tooltip)
+        ? this.tooltip
+        : null;
 
     this.handleFocusIn = this.handleFocusIn.bind(this);
     this.handleFocusOut = this.handleFocusOut.bind(this);
@@ -474,6 +490,10 @@ implements SharedTooltipController {
       this.handleDocumentKeyDown.bind(this);
     this.handleFallbackViewportChange =
       this.handleFallbackViewportChange.bind(this);
+    this.handleNativeBeforeToggle =
+      this.handleNativeBeforeToggle.bind(this);
+    this.handleNativeToggle =
+      this.handleNativeToggle.bind(this);
 
     INSTANCES.set(container, this);
 
@@ -491,6 +511,18 @@ implements SharedTooltipController {
 
   get isOpen(): boolean {
     return this.openState;
+  }
+
+  get renderMode(): SharedTooltipRenderMode {
+    return this.options.renderMode;
+  }
+
+  get semantics(): SharedTooltipSemantics {
+    return this.options.semantics;
+  }
+
+  get usesNativeHint(): boolean {
+    return this.nativeHintElement !== null;
   }
 
   showFor(
