@@ -92,6 +92,44 @@
   translate: 0 -50%;
 }
 
+
+@supports
+  (anchor-name: --a11y-tooltip-anchor) and
+  (position-anchor: --a11y-tooltip-anchor) and
+  (position-area: top center) and
+  (position-try-fallbacks: flip-block) {
+  .a11y-tooltip[data-a11y-tooltip-anchor-positioning].is-initialized
+    .a11y-tooltip__content {
+    inset: auto;
+    margin: 0;
+    translate: none;
+  }
+
+  .a11y-tooltip[data-a11y-tooltip-anchor-positioning].is-initialized
+    .a11y-tooltip__content[data-placement="top"] {
+    position-area: top center;
+    margin-block-end: var(--_offset);
+  }
+
+  .a11y-tooltip[data-a11y-tooltip-anchor-positioning].is-initialized
+    .a11y-tooltip__content[data-placement="bottom"] {
+    position-area: bottom center;
+    margin-block-start: var(--_offset);
+  }
+
+  .a11y-tooltip[data-a11y-tooltip-anchor-positioning].is-initialized
+    .a11y-tooltip__content[data-placement="left"] {
+    position-area: left center;
+    margin-inline-end: var(--_offset);
+  }
+
+  .a11y-tooltip[data-a11y-tooltip-anchor-positioning].is-initialized
+    .a11y-tooltip__content[data-placement="right"] {
+    position-area: right center;
+    margin-inline-start: var(--_offset);
+  }
+}
+
 @media (forced-colors: active) {
   .a11y-tooltip.is-initialized .a11y-tooltip__content {
     border: 1px solid CanvasText;

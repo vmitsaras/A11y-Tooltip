@@ -160,6 +160,63 @@ keyboard behavior, `role="tooltip"`, or `aria-describedby`; assistive
 technology can therefore retain the authored description even when the visual
 label is not clipped.
 
+## CSS Anchor Positioning addon
+
+Use `createAnchorPositioningAddon()` to progressively enhance the package's
+four placements with native CSS Anchor Positioning and
+`position-try-fallbacks`.
+
+```ts
+import { createTooltip } from "a11y-tooltip";
+import {
+  createAnchorPositioningAddon
+} from "a11y-tooltip/addons";
+
+createTooltip(root, {
+  addons: [
+    createAnchorPositioningAddon()
+  ]
+});
+```
+
+The addon creates a unique anchor association for each tooltip instance. Its
+default fallback order is placement-aware:
+
+- `top` / `bottom`: `flip-block` first;
+- `left` / `right`: `flip-inline` first;
+- then a secondary axis flip and a combined block/inline flip.
+
+Custom fallback tactics are optional:
+
+```ts
+createAnchorPositioningAddon({
+  fallbacks: [
+    "flip-start",
+    "flip-block"
+  ]
+});
+```
+
+Pass `fallbacks: []` to keep Anchor Positioning but disable automatic
+position-try fallback attempts.
+
+The default stylesheet activates anchor-based layout only inside an
+`@supports` rule. Browsers without the required Anchor Positioning features
+therefore retain the existing absolute-position CSS unchanged.
+
+The addon:
+
+- adds no runtime dependency;
+- does not reparent the tooltip;
+- does not move focus or change keyboard behavior;
+- does not change `role="tooltip"` or `aria-describedby`;
+- restores authored `anchor-name`, `position-anchor`,
+  `position-try-fallbacks`, and its root state attribute in `destroy()`.
+
+This improves edge placement but is not a top-layer solution. Ancestor
+`overflow: hidden` / `clip` constraints may still require a different
+overlay architecture.
+
 ## Adapters
 
 The default adapter resolves `data-a11y-tooltip-trigger` and `data-a11y-tooltip-content`. Design systems can supply a custom `TooltipAdapter` to map different markup without changing the core runtime.
@@ -187,6 +244,7 @@ See [ACCESSIBILITY.md](./ACCESSIBILITY.md) for the verification matrix and known
 
 - `examples/basic/`
 - `examples/overflow-only/`
+- `examples/anchor-positioning/`
 - GitHub Pages demo: `docs/` when Pages is configured to serve `/docs` from `main`.
 
 ## Docs metadata

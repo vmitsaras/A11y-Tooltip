@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>A11y Tooltip — Anchor positioning addon</title>
+  <link rel="stylesheet" href="../../dist/styles.css">
+  <style>
+    body {
+      min-block-size: 100vh;
+      margin: 0;
+      padding: 1.5rem;
+      font-family: system-ui, sans-serif;
+      color: #15181d;
+      background: #f7f8fa;
+    }
+
+    main {
+      max-width: 64rem;
+      margin-inline: auto;
+    }
+
+    .edge-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      min-block-size: 70vh;
+      gap: 2rem;
+      align-items: stretch;
+      margin-block-start: 2rem;
+      border: 1px dashed #aeb4bd;
+      border-radius: 1rem;
+      background: white;
+    }
+
+    .edge-grid__cell {
+      display: flex;
+      padding: 0.5rem;
+    }
+
+    .edge-grid__cell:nth-child(1) {
+      align-items: flex-start;
+      justify-content: flex-start;
+    }
+
+    .edge-grid__cell:nth-child(2) {
+      align-items: flex-start;
+      justify-content: flex-end;
+    }
+
+    .edge-grid__cell:nth-child(3) {
+      align-items: flex-end;
+      justify-content: flex-start;
+    }
+
+    .edge-grid__cell:nth-child(4) {
+      align-items: flex-end;
+      justify-content: flex-end;
+    }
+
+    button {
+      min-block-size: 2.75rem;
+      padding-inline: 1rem;
+      border: 1px solid #8c95a3;
+      border-radius: 999px;
+      background: white;
+      color: inherit;
+      font: inherit;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>CSS Anchor Positioning addon</h1>
+
+    <p>
+      Each trigger requests a preferred placement. In browsers supporting
+      CSS Anchor Positioning, position-try fallbacks can move the tooltip when
+      the preferred side would overflow. Older browsers retain the normal
+      tooltip positioning.
+    </p>
+
+    <div class="edge-grid">
+      <div class="edge-grid__cell">
+        <span
+          class="a11y-tooltip"
+          data-a11y-tooltip
+          data-a11y-tooltip-placement="top"
+        >
+          <button
+            class="a11y-tooltip__trigger"
+            data-a11y-tooltip-trigger
+          >
+            Top
+          </button>
+          <span
+            class="a11y-tooltip__content"
+            data-a11y-tooltip-content
+          >
+            Preferred top placement with automatic flip attempts.
+          </span>
+        </span>
+      </div>
+
+      <div class="edge-grid__cell">
+        <span
+          class="a11y-tooltip"
+          data-a11y-tooltip
+          data-a11y-tooltip-placement="right"
+        >
+          <button
+            class="a11y-tooltip__trigger"
+            data-a11y-tooltip-trigger
+          >
+            Right
+          </button>
+          <span
+            class="a11y-tooltip__content"
+            data-a11y-tooltip-content
+          >
+            Preferred right placement near the container edge.
+          </span>
+        </span>
+      </div>
+
+      <div class="edge-grid__cell">
+        <span
+          class="a11y-tooltip"
+          data-a11y-tooltip
+          data-a11y-tooltip-placement="left"
+        >
+          <button
+            class="a11y-tooltip__trigger"
+            data-a11y-tooltip-trigger
+          >
+            Left
+          </button>
+          <span
+            class="a11y-tooltip__content"
+            data-a11y-tooltip-content
+          >
+            Preferred left placement near the container edge.
+          </span>
+        </span>
+      </div>
+
+      <div class="edge-grid__cell">
+        <span
+          class="a11y-tooltip"
+          data-a11y-tooltip
+          data-a11y-tooltip-placement="bottom"
+        >
+          <button
+            class="a11y-tooltip__trigger"
+            data-a11y-tooltip-trigger
+          >
+            Bottom
+          </button>
+          <span
+            class="a11y-tooltip__content"
+            data-a11y-tooltip-content
+          >
+            Preferred bottom placement with automatic flip attempts.
+          </span>
+        </span>
+      </div>
+    </div>
+  </main>
+
+  <script type="module">
+    import { initTooltipsAll } from "../../dist/index.js";
+    import {
+      createAnchorPositioningAddon
+    } from "../../dist/addons/index.js";
+
+    initTooltipsAll({
+      addons: [createAnchorPositioningAddon()]
+    });
+  </script>
+</body>
+</html>
