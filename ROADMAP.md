@@ -42,6 +42,19 @@
   - [x] 260F — Chromium / Firefox / WebKit state-matrix tests
   - [x] 260G — clipping + existing auto-popover example
   - [ ] 260H — manual VoiceOver / NVDA / mobile AT verification
+- [x] CTRL-300 — Shared Tooltip Controller via `createSharedTooltip()`
+  - [x] 300A — public controller contract + frozen defaults
+  - [x] 300B — delegated focus/pointer trigger engine
+  - [x] 300C — focus-over-hover state machine + per-trigger dismissal
+  - [x] 300D — one generated/authored visual tooltip + teardown restoration
+  - [x] 300E — retarget without close/open flicker
+  - [x] 300F — dynamic Anchor Positioning + viewport fallback
+  - [x] 300G — dedicated shared lifecycle events
+  - [x] 300H — unit state-matrix coverage
+  - [x] 300I — Chromium / Firefox / WebKit dense-interface coverage
+  - [x] 300J — read-only shared integration diagnostics
+  - [x] 300K — dense toolbar + dynamic-trigger example
+  - [x] 300L — package/docs/accessibility integration
 
 Only after v0.1 runtime behavior is stable:
 
@@ -51,6 +64,9 @@ Only after v0.1 runtime behavior is stable:
 ## Future candidates
 
 These are deliberately not part of the core MVP:
+
+- CTRL-320 — optional shared native hint renderer after retarget/source behavior is proven;
+- CTRL-340 — dynamic shared `aria-describedby` mode only after manual AT evidence supports it;
 
 - richer viewport-placement strategies only if the native anchor-positioning addon proves insufficient;
 - framework-specific wrappers maintained outside the core runtime;
