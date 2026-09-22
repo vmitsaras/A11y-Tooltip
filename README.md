@@ -380,6 +380,72 @@ The diagnostics API does not initialize, open, close, repair, persist, send,
 or mutate anything. It returns frozen finding records so applications, demos,
 tests, or developer tooling can decide how to present them.
 
+## Shared tooltip controller
+
+For dense toolbars, tables, and editor interfaces, `a11y-tooltip/shared`
+provides one visual tooltip for many already-accessibly-named controls.
+
+```ts
+import {
+  createSharedTooltip
+} from "a11y-tooltip/shared";
+
+const controller = createSharedTooltip(toolbar, {
+  triggers: "[data-tooltip-text]",
+
+  getContent(trigger) {
+    return trigger.dataset.tooltipText ?? "";
+  },
+
+  placement: "bottom"
+});
+```
+
+A typical trigger already exposes its purpose independently:
+
+```html
+<button
+  aria-label="Bold"
+  data-tooltip-text="Bold"
+>
+  …
+</button>
+```
+
+The controller deliberately does **not** add or move `aria-describedby`.
+Its shared tooltip is visual-only and remains `aria-hidden="true"`, avoiding a
+single mutable description node becoming the semantic description for many
+inactive controls.
+
+The controller uses delegated `focusin` / `focusout` and pointer events, so
+new matching triggers work without reinitialization or a `MutationObserver`.
+Keyboard focus has priority over pointer hover. Once open, moving between
+triggers retargets the same tooltip instead of closing and reopening it.
+
+The public controller exposes:
+
+- `activeTrigger`;
+- `isOpen`;
+- `showFor(trigger, reason?)`;
+- `close(reason?)`;
+- `refresh()`;
+- `destroy()`.
+
+Shared lifecycle events use the separate `a11y-tooltip-shared:*` namespace,
+including `before-retarget` / `retarget` for visible trigger changes.
+
+Positioning uses CSS Anchor Positioning when available and a fixed viewport
+fallback otherwise. Authored `anchor-name`, tooltip attributes, inline styles,
+and generated DOM are restored during teardown.
+
+Do not use the shared controller as the source of a control's accessible name,
+error message, validation requirement, destructive-action consequence, or
+other essential instructions. Those need persistent accessible content.
+
+Dynamic shared `aria-describedby` ownership and native hint-popover rendering
+are intentionally deferred until separate assistive-technology and retargeting
+verification is complete.
+
 ## CSS
 
 The default stylesheet uses BEM classes for styling and `data-*` attributes for JavaScript hooks.
@@ -407,6 +473,7 @@ See [ACCESSIBILITY.md](./ACCESSIBILITY.md) for the verification matrix and known
 - `examples/selector-adapter/`
 - `examples/diagnostics/`
 - `examples/hint-popover/`
+- `examples/shared-tooltip/`
 - GitHub Pages demo: `docs/` when Pages is configured to serve `/docs` from `main`.
 
 ## Docs metadata
