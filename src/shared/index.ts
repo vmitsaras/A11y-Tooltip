@@ -1208,12 +1208,26 @@ implements SharedTooltipController {
         return false;
       }
 
-      this.releaseActiveDescription();
-      this.tooltip.textContent = content;
-      this.assignActiveTrigger(trigger);
-      this.updatePosition();
+      const applyRetarget = (): boolean => {
+        // Semantic/content state changes synchronously. Motion only decorates
+        // the visual displacement after the new state is already correct.
+        this.releaseActiveDescription();
+        this.tooltip.textContent = content;
+        this.assignActiveTrigger(trigger);
+        this.updatePosition();
 
-      if (!this.retargetNativeHint(trigger)) {
+        return this.retargetNativeHint(trigger);
+      };
+
+      const nativeRetargeted = this.flipMotion
+        ? this.flipMotion.retarget(
+            this.tooltip,
+            applyRetarget
+          )
+        : applyRetarget();
+
+      if (!nativeRetargeted) {
+        this.flipMotion?.cancel();
         this.close("platform");
         return false;
       }
