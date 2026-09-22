@@ -408,7 +408,7 @@ test("native hint retargeting updates the popover source without closing control
 
     window.__sharedHintSources = [];
 
-    tooltip?.addEventListener("toggle", (event) => {
+    tooltip?.addEventListener("beforetoggle", (event) => {
       const toggleEvent = event as ToggleEvent & {
         source?: Element | null;
       };
