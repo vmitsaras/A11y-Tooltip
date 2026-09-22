@@ -114,6 +114,52 @@ createTooltip(secondRoot, { addons: [onlyOneOpen] });
 
 Custom addons implement `TooltipAddon` and may return a cleanup callback.
 
+## Overflow-only addon
+
+Use `createOverflowOnlyAddon()` when the floating tooltip should appear only
+if a label or other measured target is actually clipped.
+
+```ts
+import { createTooltip } from "a11y-tooltip";
+import { createOverflowOnlyAddon } from "a11y-tooltip/addons";
+
+createTooltip(root, {
+  addons: [
+    createOverflowOnlyAddon()
+  ]
+});
+```
+
+By default the addon measures the trigger on the logical inline axis. It can
+also measure a descendant selector or a resolver result:
+
+```ts
+createOverflowOnlyAddon({
+  target: "[data-overflow-target]",
+  axis: "either",
+  tolerance: 1
+});
+```
+
+Options:
+
+- `target`: `"trigger"` (default), a selector resolved inside the tooltip
+  root, or a resolver returning an `HTMLElement`.
+- `axis`: `"inline"` (default), `"block"`, or `"either"`. Inline/block
+  follow the target's writing mode.
+- `tolerance`: non-negative CSS-pixel difference to ignore when comparing
+  scroll size with client size.
+
+The addon performs a fresh measurement only when an opening is requested, so
+responsive changes are picked up on the next focus/hover attempt without a
+`ResizeObserver`. If an explicit target cannot be resolved, visual opening is
+safely canceled.
+
+The addon gates only the **visual open state**. It does not change focus,
+keyboard behavior, `role="tooltip"`, or `aria-describedby`; assistive
+technology can therefore retain the authored description even when the visual
+label is not clipped.
+
 ## Adapters
 
 The default adapter resolves `data-a11y-tooltip-trigger` and `data-a11y-tooltip-content`. Design systems can supply a custom `TooltipAdapter` to map different markup without changing the core runtime.
@@ -140,6 +186,7 @@ See [ACCESSIBILITY.md](./ACCESSIBILITY.md) for the verification matrix and known
 ## Examples
 
 - `examples/basic/`
+- `examples/overflow-only/`
 - GitHub Pages demo: `docs/` when Pages is configured to serve `/docs` from `main`.
 
 ## Docs metadata
