@@ -113,6 +113,25 @@ describe("tooltip diagnostics", () => {
     expect(codes).toContain("tooltip-interactive-content");
   });
 
+  it("reports empty tooltip content", () => {
+    document.body.innerHTML = `
+      <span data-a11y-tooltip>
+        <button data-a11y-tooltip-trigger>Help</button>
+        <span data-a11y-tooltip-content>   </span>
+      </span>
+    `;
+
+    const root = document.querySelector("[data-a11y-tooltip]");
+
+    if (!(root instanceof HTMLElement)) {
+      throw new Error("Missing root.");
+    }
+
+    expect(
+      scanTooltipRoot(root).map((finding) => finding.code)
+    ).toContain("tooltip-empty");
+  });
+
   it("reports a trigger with no obvious accessible-name source", () => {
     document.body.innerHTML = `
       <span data-a11y-tooltip>
