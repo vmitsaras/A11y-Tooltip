@@ -69,6 +69,17 @@
   - [x] 340D — browser accessible-description verification
   - [x] 340E — diagnostics for stale/duplicate relationships
   - [ ] 340F — manual NVDA / JAWS / VoiceOver / TalkBack verification
+- [x] CTRL-360 — Shared Tooltip Motion via native WAAPI FLIP
+  - [x] 360A — opt-in motion contract (`none` / `move`)
+  - [x] 360B — zero-dependency WAAPI FLIP retarget driver
+  - [x] 360C — interrupted retargets continue from current visual geometry
+  - [x] 360D — `prefers-reduced-motion` disables travel
+  - [x] 360E — anchored renderer integration
+  - [x] 360F — native hint top-layer integration
+  - [x] 360G — position-only motion with immediate variable-size/content updates
+  - [x] 360H — Chromium / Firefox / WebKit rapid-retarget browser coverage
+  - [ ] 360I — optional GSAP Flip integration example
+  - [ ] 360J — experimental View Transition integration
 
 Only after v0.1 runtime behavior is stable:
 
