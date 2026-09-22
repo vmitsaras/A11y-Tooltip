@@ -159,12 +159,14 @@ Firefox, and WebKit. This is evidence about browser accessibility-tree mapping,
 not proof of assistive-technology speech timing or announcement behavior.
 Manual NVDA, JAWS, VoiceOver, and TalkBack verification remains pending.
 
-`createSharedTooltip()` is intentionally a **visual-only** controller for dense
+`createSharedTooltip()` defaults to a **visual-only** controller for dense
 interfaces whose triggers already expose their purpose accessibly.
 
-- The controller never adds, removes, or moves `aria-describedby`.
-- The shared visual tooltip stays `aria-hidden="true"` so a mutable shared
-  content node does not become the semantic description of inactive controls.
+- In the default `semantics: "visual-only"` mode, the controller never adds,
+  removes, or moves `aria-describedby`.
+- In that default mode, the shared visual tooltip stays `aria-hidden="true"`
+  so a mutable shared content node does not become the semantic description of
+  inactive controls.
 - Every trigger must therefore have an accessible name independent of the
   shared tooltip, for example an `aria-label` or visible text.
 - Matching triggers that are not keyboard-focusable fail closed and do not open
@@ -184,7 +186,8 @@ interfaces whose triggers already expose their purpose accessibly.
 
 The shared controller has its own lifecycle namespace and does not impersonate a
 normal `TooltipInstance`. Dynamic shared `aria-describedby` ownership is
-deferred pending manual NVDA, JAWS, VoiceOver, and TalkBack verification.
+implemented only as an experimental opt-in and remains pending manual NVDA,
+JAWS, VoiceOver, and TalkBack verification.
 
 ## Manual release checks
 
