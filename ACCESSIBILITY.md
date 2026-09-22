@@ -208,6 +208,21 @@ Browser automation verifies reduced-motion behavior and confirms that
 experimental describedby ownership is already correct while the tooltip is
 still visually moving.
 
+### Optional GSAP Flip motion
+
+The GSAP example follows the same accessibility boundary as the built-in WAAPI
+driver:
+
+- the controller updates content, focus state, anchor ownership, and optional
+  `aria-describedby` before GSAP animates;
+- the integration listens only to `before-retarget` and `retarget`;
+- `prefers-reduced-motion: reduce` skips Flip animation;
+- close/destroy paths kill any active Flip;
+- the package remains fully functional if GSAP is absent.
+
+GSAP is therefore a visual consumer of controller lifecycle events rather than
+an accessibility or state dependency.
+
 ## Manual release checks
 
 | Check | Environment | Status |

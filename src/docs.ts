@@ -182,6 +182,12 @@ if (root instanceof HTMLElement) {
       description:
         "Coordinates one visual tooltip across a dense delegated toolbar, including retargeting and dynamic triggers.",
       path: "examples/shared-tooltip"
+    },
+    {
+      name: "Shared tooltip + GSAP Flip",
+      description:
+        "Shows optional GSAP Flip retarget motion driven by the shared controller lifecycle without adding a package dependency.",
+      path: "examples/shared-tooltip-gsap"
     }
   ]
 } satisfies PluginDocs;

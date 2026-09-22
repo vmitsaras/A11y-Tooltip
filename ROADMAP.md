@@ -78,7 +78,7 @@
   - [x] 360F — native hint top-layer integration
   - [x] 360G — position-only motion with immediate variable-size/content updates
   - [x] 360H — Chromium / Firefox / WebKit rapid-retarget browser coverage
-  - [ ] 360I — optional GSAP Flip integration example
+  - [x] 360I — optional GSAP Flip integration example
   - [ ] 360J — experimental View Transition integration
 
 Only after v0.1 runtime behavior is stable:

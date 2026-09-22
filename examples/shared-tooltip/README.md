@@ -45,3 +45,17 @@ Motion demo:
 
 Motion affects retarget travel only. Content and accessibility state update
 immediately, and reduced-motion preferences disable the travel animation.
+
+## GSAP Flip example
+
+The package-native option remains:
+
+```ts
+motion: "move"
+```
+
+For applications that already use GSAP, the separate
+`examples/shared-tooltip-gsap/` demo shows how to keep `motion: "none"` and
+animate the public `before-retarget` / `retarget` lifecycle with GSAP Flip.
+This avoids adding GSAP to A11y Tooltip's dependencies or running two motion
+drivers at the same time.

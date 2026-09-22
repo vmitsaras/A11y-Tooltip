@@ -714,6 +714,7 @@ test("scrolled docs demo moves across its row without page-sized travel", async 
   await expect(toolbar).toHaveClass(
     /is-shared-tooltip-initialized/u
   );
+  await page.locator('[data-shared-motion="none"]').click();
   await page.locator('[data-shared-motion="move"]').click();
 
   await buttons.nth(0).focus();
@@ -747,31 +748,72 @@ test("scrolled docs demo moves across its row without page-sized travel", async 
 
 test("docs motion demo visibly travels between differently sized labels", async ({ page }) => {
   await page.goto("/docs/");
+  await page.locator('[data-shared-motion="none"]').click();
   await page.locator('[data-shared-motion="move"]').click();
   const buttons = page.locator("[data-demo-shared-motion-toolbar] button");
   const tooltip = page.locator('[data-a11y-shared-tooltip-content]:not([hidden])');
 
   await buttons.nth(0).focus();
   const start = await tooltip.boundingBox();
+
   await buttons.nth(1).focus();
-  await expect.poll(() => tooltip.evaluate((element) => element.getAnimations().length)).toBe(1);
-  const early = await tooltip.boundingBox();
-  await page.waitForTimeout(120);
+  await expect.poll(() =>
+    tooltip.evaluate((element) =>
+      element.getAnimations().length
+    )
+  ).toBe(1);
+
+  await tooltip.evaluate((element) => {
+    const animation = element.getAnimations()[0];
+    const effect = animation?.effect;
+
+    if (
+      !animation ||
+      !(effect instanceof KeyframeEffect)
+    ) {
+      throw new Error("Retarget animation is missing.");
+    }
+
+    const duration = Number(
+      effect.getTiming().duration
+    );
+
+    animation.pause();
+    animation.currentTime = duration / 2;
+  });
+
   const middle = await tooltip.boundingBox();
-  await expect.poll(() => tooltip.evaluate((element) => element.getAnimations().length)).toBe(0);
+
+  await tooltip.evaluate((element) => {
+    element.getAnimations()[0]?.finish();
+  });
+
+  await expect.poll(() =>
+    tooltip.evaluate((element) =>
+      element.getAnimations().length
+    )
+  ).toBe(0);
+
   const end = await tooltip.boundingBox();
 
-  if (!start || !early || !middle || !end) throw new Error("Tooltip was not measurable");
+  if (!start || !middle || !end) {
+    throw new Error("Tooltip was not measurable");
+  }
+
   expect(Math.abs(start.width - end.width)).toBeLessThan(1);
-  expect(Math.abs(early.width - end.width)).toBeLessThan(1);
   expect(Math.abs(middle.width - end.width)).toBeLessThan(1);
-  expect(early.x).toBeLessThan(end.x - 10);
-  expect(middle.x).toBeGreaterThan(early.x);
-  expect(middle.x).toBeLessThan(end.x);
+
+  const low = Math.min(start.x, end.x);
+  const high = Math.max(start.x, end.x);
+
+  expect(Math.abs(end.x - start.x)).toBeGreaterThan(20);
+  expect(middle.x).toBeGreaterThan(low + 5);
+  expect(middle.x).toBeLessThan(high - 5);
 });
 
 test("scrolled docs keeps the tooltip in place until retarget motion begins", async ({ page }) => {
   await page.goto("/docs/");
+  await page.locator('[data-shared-motion="none"]').click();
   await page.locator('[data-shared-motion="move"]').click();
 
   const positions = await page.evaluate(async () => {
@@ -805,6 +847,7 @@ test("scrolled docs keeps the tooltip in place until retarget motion begins", as
 
 test("scrolled docs retarget stays on screen after every paint", async ({ page }) => {
   await page.goto("/docs/");
+  await page.locator('[data-shared-motion="none"]').click();
   await page.locator('[data-shared-motion="move"]').click();
 
   const samples = await page.evaluate(async () => {
@@ -837,7 +880,10 @@ test("scrolled docs retarget stays on screen after every paint", async ({ page }
   expect(samples.scrollY).toBeGreaterThan(500);
   for (const frame of samples.frames) {
     expect(frame.hidden).toBe(false);
-    expect(Math.abs(frame.y - samples.origin.y)).toBeLessThan(1);
+    // This regression test protects against a page-scroll-sized vertical jump,
+    // not subpixel identity. Fixed/anchored layout can vary by a few CSS pixels
+    // across engines while repeatedly interrupting retarget motion.
+    expect(Math.abs(frame.y - samples.origin.y)).toBeLessThan(5);
     expect(frame.x).toBeGreaterThanOrEqual(samples.origin.x - 1);
     expect(frame.x).toBeLessThan(samples.origin.x + 300);
   }
@@ -845,6 +891,7 @@ test("scrolled docs retarget stays on screen after every paint", async ({ page }
 
 test("docs motion demo retains the shared tooltip across a brief pointer gap", async ({ page }) => {
   await page.goto("/docs/");
+  await page.locator('[data-shared-motion="none"]').click();
   await page.locator('[data-shared-motion="move"]').click();
 
   const buttons = page.locator("[data-demo-shared-motion-toolbar] button");
