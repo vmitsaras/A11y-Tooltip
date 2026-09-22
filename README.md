@@ -412,10 +412,11 @@ A typical trigger already exposes its purpose independently:
 </button>
 ```
 
-The controller deliberately does **not** add or move `aria-describedby`.
-Its shared tooltip is visual-only and remains `aria-hidden="true"`, avoiding a
-single mutable description node becoming the semantic description for many
-inactive controls.
+By default, the controller does **not** add or move `aria-describedby`.
+Its default shared tooltip is visual-only and remains `aria-hidden="true"`,
+avoiding a single mutable description node becoming the semantic description
+for many inactive controls. The experimental `semantics: "describedby"` mode
+changes that behavior only for the active trigger.
 
 The controller uses delegated `focusin` / `focusout` and pointer events, so
 new matching triggers work without reinitialization or a `MutationObserver`.
@@ -442,9 +443,38 @@ Do not use the shared controller as the source of a control's accessible name,
 error message, validation requirement, destructive-action consequence, or
 other essential instructions. Those need persistent accessible content.
 
-Dynamic shared `aria-describedby` ownership and native hint-popover rendering
-are intentionally deferred until separate assistive-technology and retargeting
-verification is complete.
+Two experimental opt-ins are now available without changing the default:
+
+```ts
+createSharedTooltip(toolbar, {
+  triggers: "[data-tooltip-text]",
+  getContent(trigger) {
+    return trigger.dataset.tooltipText ?? "";
+  },
+  renderMode: "hint-popover",
+  semantics: "describedby"
+});
+```
+
+- `renderMode: "hint-popover"` uses native `popover="hint"` when exact hint
+  support and the required Anchor Positioning features are present. Unsupported
+  browsers fall back to anchored rendering. Native light dismiss and other
+  platform closes synchronize back into the controller with the
+  `"platform"` close reason.
+- Retargeting an already-open native hint performs a synchronous hide/show pair
+  with the new trigger as `showPopover({ source })`, leaving the final state
+  open before the browser gets a rendering opportunity.
+- `semantics: "describedby"` temporarily appends the shared tooltip ID to only
+  the active trigger's existing `aria-describedby` tokens, restores the prior
+  attribute exactly on retarget/close, and removes `aria-hidden` from the
+  tooltip while that mode is configured.
+- The controller rejects duplicate authored tooltip IDs in describedby mode.
+
+The describedby mode is still experimental. Cross-browser accessibility-tree
+tests verify the computed description relationship, but those tests do not
+prove screen-reader announcement timing. Manual NVDA, JAWS, VoiceOver, and
+TalkBack verification remains required before treating this mode as a default
+semantic strategy.
 
 ## CSS
 

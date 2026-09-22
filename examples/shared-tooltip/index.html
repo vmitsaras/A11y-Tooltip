@@ -74,9 +74,16 @@
     <h1>Shared tooltip controller</h1>
 
     <p>
-      This toolbar uses one visual-only tooltip for every control. Each button
-      already has its own accessible name; the shared tooltip is not used as an
-      accessible-name or description source.
+      This toolbar uses one shared tooltip for every control. By default it is
+      visual-only. Add <code>?render=hint</code> for experimental native
+      <code>popover="hint"</code> rendering and
+      <code>&amp;semantics=describedby</code> for experimental dynamic
+      <code>aria-describedby</code> ownership.
+    </p>
+
+    <p>
+      Active modes:
+      <strong data-mode-summary>anchored · visual-only</strong>
     </p>
 
     <div class="controls">
@@ -104,9 +111,29 @@
 
     const toolbar = document.querySelector("[data-shared-toolbar]");
     const status = document.querySelector("[data-status]");
+    const params = new URLSearchParams(location.search);
     const requestedCount = Number(
-      new URLSearchParams(location.search).get("count") ?? 120
+      params.get("count") ?? 120
     );
+
+    const renderMode =
+      params.get("render") === "hint"
+        ? "hint-popover"
+        : "anchored";
+
+    const semantics =
+      params.get("semantics") === "describedby"
+        ? "describedby"
+        : "visual-only";
+
+    const modeSummary = document.querySelector(
+      "[data-mode-summary]"
+    );
+
+    if (modeSummary instanceof HTMLElement) {
+      modeSummary.textContent =
+        `${renderMode} · ${semantics}`;
+    }
     const count = Math.min(
       Math.max(Number.isFinite(requestedCount) ? requestedCount : 120, 1),
       500
@@ -142,8 +169,15 @@
       },
       placement: "bottom",
       showDelay: 0,
-      hideDelay: 80
+      hideDelay: 80,
+      renderMode,
+      semantics
     });
+
+    toolbar.dataset.nativeHint =
+      controller.usesNativeHint ? "true" : "false";
+    toolbar.dataset.semantics =
+      controller.semantics;
 
     window.__sharedTooltip = controller;
 

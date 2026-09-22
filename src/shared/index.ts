@@ -13,10 +13,18 @@ import {
   type AnchorPositioningFallback,
   type InlineStyleSnapshot
 } from "../internal/anchor-positioning.js";
+import {
+  isPopoverOpen,
+  supportsHintPopover,
+  type HintPopoverElement,
+  type PopoverToggleEvent
+} from "../internal/hint-popover.js";
 
 const COMPONENT_NAME = "a11y-tooltip-shared";
 const ROOT_SELECTOR = "[data-a11y-shared-tooltip]";
 const CONTENT_ATTRIBUTE = "data-a11y-shared-tooltip-content";
+const HINT_ROOT_ATTRIBUTE =
+  "data-a11y-shared-tooltip-hint-popover";
 
 const CLASSES = Object.freeze({
   initialized: "is-shared-tooltip-initialized",
@@ -47,6 +55,7 @@ export type SharedTooltipCloseReason =
   | "destroy"
   | "escape"
   | "leave"
+  | "platform"
   | "trigger-removed";
 
 export type SharedTooltipReason =
@@ -55,6 +64,24 @@ export type SharedTooltipReason =
 
 export type SharedTooltipPositionFallback =
   AnchorPositioningFallback;
+
+export const SHARED_TOOLTIP_RENDER_MODES =
+  Object.freeze([
+    "anchored",
+    "hint-popover"
+  ] as const);
+
+export type SharedTooltipRenderMode =
+  (typeof SHARED_TOOLTIP_RENDER_MODES)[number];
+
+export const SHARED_TOOLTIP_SEMANTICS =
+  Object.freeze([
+    "visual-only",
+    "describedby"
+  ] as const);
+
+export type SharedTooltipSemantics =
+  (typeof SHARED_TOOLTIP_SEMANTICS)[number];
 
 export interface SharedTooltipOptions {
   /**
@@ -82,6 +109,18 @@ export interface SharedTooltipOptions {
    * CSS Anchor Positioning fallback tactics. Defaults are placement-aware.
    */
   fallbacks?: readonly SharedTooltipPositionFallback[];
+  /**
+   * Experimental rendering mode. "hint-popover" enters the top layer when
+   * both popover="hint" and the required Anchor Positioning features exist.
+   * Unsupported browsers fall back to anchored rendering.
+   */
+  renderMode?: SharedTooltipRenderMode;
+  /**
+   * Experimental semantics mode. "describedby" temporarily appends the
+   * shared tooltip id to only the active trigger's aria-describedby tokens.
+   * The default remains visual-only.
+   */
+  semantics?: SharedTooltipSemantics;
 }
 
 interface ResolvedSharedTooltipOptions {
@@ -94,6 +133,8 @@ interface ResolvedSharedTooltipOptions {
   hideDelay: number;
   placement: TooltipPlacement;
   fallbacks: readonly SharedTooltipPositionFallback[];
+  renderMode: SharedTooltipRenderMode;
+  semantics: SharedTooltipSemantics;
 }
 
 export interface SharedTooltipController {
@@ -101,6 +142,9 @@ export interface SharedTooltipController {
   readonly tooltip: HTMLElement;
   readonly activeTrigger: HTMLElement | null;
   readonly isOpen: boolean;
+  readonly renderMode: SharedTooltipRenderMode;
+  readonly semantics: SharedTooltipSemantics;
+  readonly usesNativeHint: boolean;
   showFor(
     trigger: HTMLElement,
     reason?: SharedTooltipOpenReason
@@ -123,6 +167,8 @@ interface AuthoredTooltipSnapshot {
   role: string | null;
   ariaHidden: string | null;
   placement: string | null;
+  id: string | null;
+  popover: string | null;
   hidden: HTMLElement["hidden"];
   style: string | null;
 }
@@ -132,10 +178,19 @@ interface TriggerAnchorState {
   anchorName: InlineStyleSnapshot;
 }
 
+interface TriggerDescriptionState {
+  trigger: HTMLElement;
+  describedBy: string | null;
+}
+
+let generatedTooltipId = 0;
+
 const DEFAULTS = Object.freeze({
   showDelay: 180,
   hideDelay: 100,
-  placement: "top" as TooltipPlacement
+  placement: "top" as TooltipPlacement,
+  renderMode: "anchored" as SharedTooltipRenderMode,
+  semantics: "visual-only" as SharedTooltipSemantics
 });
 
 const INSTANCES =
@@ -189,6 +244,18 @@ function normalizeOptions(
     ? (options.placement as TooltipPlacement)
     : DEFAULTS.placement;
 
+  const renderMode = SHARED_TOOLTIP_RENDER_MODES.includes(
+    options.renderMode as SharedTooltipRenderMode
+  )
+    ? (options.renderMode as SharedTooltipRenderMode)
+    : DEFAULTS.renderMode;
+
+  const semantics = SHARED_TOOLTIP_SEMANTICS.includes(
+    options.semantics as SharedTooltipSemantics
+  )
+    ? (options.semantics as SharedTooltipSemantics)
+    : DEFAULTS.semantics;
+
   return Object.freeze({
     triggers,
     getContent: options.getContent,
@@ -205,7 +272,9 @@ function normalizeOptions(
     fallbacks: normalizeAnchorFallbacks(
       options.fallbacks,
       placement
-    )
+    ),
+    renderMode,
+    semantics
   });
 }
 
@@ -227,6 +296,62 @@ function containsNode(
   node: Node | null
 ): boolean {
   return Boolean(node && container.contains(node));
+}
+
+function tokenize(value: string | null): string[] {
+  return String(value ?? "")
+    .trim()
+    .split(/\s+/u)
+    .filter(Boolean);
+}
+
+function uniqueTokens(tokens: readonly string[]): string[] {
+  return Array.from(new Set(tokens));
+}
+
+function ensureSharedTooltipId(
+  tooltip: HTMLElement
+): { id: string; generated: boolean } {
+  const authored = tooltip.id.trim();
+
+  if (authored) {
+    return {
+      id: authored,
+      generated: false
+    };
+  }
+
+  let candidate = "";
+
+  do {
+    generatedTooltipId += 1;
+    candidate =
+      `a11y-tooltip-shared-${generatedTooltipId}`;
+  } while (
+    tooltip.ownerDocument.getElementById(candidate)
+  );
+
+  tooltip.id = candidate;
+
+  return {
+    id: tooltip.id,
+    generated: true
+  };
+}
+
+function hasDuplicateId(
+  element: HTMLElement
+): boolean {
+  const id = element.id.trim();
+
+  if (!id) {
+    return false;
+  }
+
+  return Array.from(
+    element.ownerDocument.querySelectorAll("[id]")
+  ).filter((candidate) => candidate.id === id)
+    .length > 1;
 }
 
 function parseOffset(element: HTMLElement): number {
@@ -256,6 +381,8 @@ function snapshotAuthoredTooltip(
     role: tooltip.getAttribute("role"),
     ariaHidden: tooltip.getAttribute("aria-hidden"),
     placement: tooltip.getAttribute("data-placement"),
+    id: tooltip.getAttribute("id"),
+    popover: tooltip.getAttribute("popover"),
     hidden: tooltip.hidden,
     style: tooltip.getAttribute("style")
   };
@@ -285,10 +412,14 @@ implements SharedTooltipController {
   private readonly authoredTooltipSnapshot:
     AuthoredTooltipSnapshot | null;
   private readonly originalRootAttribute: string | null;
+  private readonly originalHintRootAttribute: string | null;
   private readonly rootHadInitializedClass: boolean;
   private readonly rootHadOpenClass: boolean;
   private readonly anchorSupported: boolean;
   private readonly anchorName: string;
+  private readonly nativeHintElement: HintPopoverElement | null;
+
+  private descriptionTooltipId: string | null = null;
 
   private openState = false;
   private destroyed = false;
@@ -300,6 +431,8 @@ implements SharedTooltipController {
   private hoveringTooltip = false;
 
   private activeAnchorState: TriggerAnchorState | null = null;
+  private activeDescriptionState:
+    TriggerDescriptionState | null = null;
 
   private showTimer: number | null = null;
   private hideTimer: number | null = null;
@@ -347,6 +480,8 @@ implements SharedTooltipController {
 
     this.originalRootAttribute =
       container.getAttribute(ROOT_SELECTOR.slice(1, -1));
+    this.originalHintRootAttribute =
+      container.getAttribute(HINT_ROOT_ATTRIBUTE);
     this.rootHadInitializedClass =
       container.classList.contains(CLASSES.initialized);
     this.rootHadOpenClass =
@@ -357,6 +492,13 @@ implements SharedTooltipController {
     this.anchorName = createAnchorName(
       "--a11y-shared-tooltip-anchor"
     );
+
+    this.nativeHintElement =
+      this.options.renderMode === "hint-popover" &&
+      this.anchorSupported &&
+      supportsHintPopover(this.tooltip)
+        ? this.tooltip
+        : null;
 
     this.handleFocusIn = this.handleFocusIn.bind(this);
     this.handleFocusOut = this.handleFocusOut.bind(this);
@@ -372,6 +514,10 @@ implements SharedTooltipController {
       this.handleDocumentKeyDown.bind(this);
     this.handleFallbackViewportChange =
       this.handleFallbackViewportChange.bind(this);
+    this.handleNativeBeforeToggle =
+      this.handleNativeBeforeToggle.bind(this);
+    this.handleNativeToggle =
+      this.handleNativeToggle.bind(this);
 
     INSTANCES.set(container, this);
 
@@ -389,6 +535,18 @@ implements SharedTooltipController {
 
   get isOpen(): boolean {
     return this.openState;
+  }
+
+  get renderMode(): SharedTooltipRenderMode {
+    return this.options.renderMode;
+  }
+
+  get semantics(): SharedTooltipSemantics {
+    return this.options.semantics;
+  }
+
+  get usesNativeHint(): boolean {
+    return this.nativeHintElement !== null;
   }
 
   showFor(
@@ -435,6 +593,7 @@ implements SharedTooltipController {
       reason !== "content-empty" &&
       reason !== "escape" &&
       reason !== "destroy" &&
+      reason !== "platform" &&
       reason !== "trigger-removed";
 
     const allowed = this.dispatch(
@@ -450,11 +609,15 @@ implements SharedTooltipController {
       return false;
     }
 
-    if (reason === "escape" && this.currentTrigger) {
+    if (
+      (reason === "escape" || reason === "platform") &&
+      this.currentTrigger
+    ) {
       this.dismissedTrigger = this.currentTrigger;
     }
 
     this.openState = false;
+    this.hideNativeHint();
     this.tooltip.hidden = true;
     this.container.classList.remove(CLASSES.open);
     this.container.ownerDocument.removeEventListener(
@@ -463,6 +626,7 @@ implements SharedTooltipController {
     );
 
     this.stopFallbackListeners();
+    this.releaseActiveDescription();
     this.releaseActiveAnchor();
 
     const previousTrigger = this.currentTrigger ?? undefined;
@@ -543,6 +707,17 @@ implements SharedTooltipController {
       this.handleTooltipPointerLeave
     );
 
+    if (this.nativeHintElement) {
+      this.nativeHintElement.removeEventListener(
+        "beforetoggle",
+        this.handleNativeBeforeToggle
+      );
+      this.nativeHintElement.removeEventListener(
+        "toggle",
+        this.handleNativeToggle
+      );
+    }
+
     this.stopFallbackListeners();
     this.releaseActiveAnchor();
 
@@ -557,6 +732,12 @@ implements SharedTooltipController {
         this.originalRootAttribute
       );
     }
+
+    restoreAttribute(
+      this.container,
+      HINT_ROOT_ATTRIBUTE,
+      this.originalHintRootAttribute
+    );
 
     if (!this.rootHadInitializedClass) {
       this.container.classList.remove(
@@ -602,6 +783,16 @@ implements SharedTooltipController {
       );
       restoreAttribute(
         this.tooltip,
+        "id",
+        snapshot.id
+      );
+      restoreAttribute(
+        this.tooltip,
+        "popover",
+        snapshot.popover
+      );
+      restoreAttribute(
+        this.tooltip,
         "style",
         snapshot.style
       );
@@ -613,6 +804,7 @@ implements SharedTooltipController {
     this.currentTrigger = null;
     this.dismissedTrigger = null;
     this.hoveringTooltip = false;
+    this.descriptionTooltipId = null;
     this.destroyed = true;
 
     INSTANCES.delete(this.container);
@@ -621,6 +813,23 @@ implements SharedTooltipController {
   }
 
   private init(): void {
+    if (this.options.semantics === "describedby") {
+      const { id, generated } =
+        ensureSharedTooltipId(this.tooltip);
+
+      if (hasDuplicateId(this.tooltip)) {
+        if (generated) {
+          this.tooltip.removeAttribute("id");
+        }
+
+        throw new TypeError(
+          `Shared tooltip id "${id}" must be unique when semantics is "describedby".`
+        );
+      }
+
+      this.descriptionTooltipId = id;
+    }
+
     const rootAttribute =
       ROOT_SELECTOR.slice(1, -1);
 
@@ -633,12 +842,37 @@ implements SharedTooltipController {
     );
     this.tooltip.setAttribute(CONTENT_ATTRIBUTE, "");
     this.tooltip.setAttribute("role", "tooltip");
-    this.tooltip.setAttribute("aria-hidden", "true");
+
+    if (this.options.semantics === "visual-only") {
+      this.tooltip.setAttribute("aria-hidden", "true");
+    } else {
+      this.tooltip.removeAttribute("aria-hidden");
+    }
+
     this.tooltip.setAttribute(
       "data-placement",
       this.options.placement
     );
     this.tooltip.hidden = true;
+
+    if (this.nativeHintElement) {
+      this.container.setAttribute(
+        HINT_ROOT_ATTRIBUTE,
+        ""
+      );
+      this.nativeHintElement.setAttribute(
+        "popover",
+        "hint"
+      );
+      this.nativeHintElement.addEventListener(
+        "beforetoggle",
+        this.handleNativeBeforeToggle
+      );
+      this.nativeHintElement.addEventListener(
+        "toggle",
+        this.handleNativeToggle
+      );
+    }
 
     if (this.anchorSupported) {
       this.tooltip.style.setProperty(
@@ -908,9 +1142,15 @@ implements SharedTooltipController {
         return false;
       }
 
-      this.assignActiveTrigger(trigger);
+      this.releaseActiveDescription();
       this.tooltip.textContent = content;
+      this.assignActiveTrigger(trigger);
       this.updatePosition();
+
+      if (!this.retargetNativeHint(trigger)) {
+        this.close("platform");
+        return false;
+      }
 
       this.dispatch(
         sharedTooltipEvents.retarget,
@@ -937,8 +1177,8 @@ implements SharedTooltipController {
       return false;
     }
 
-    this.assignActiveTrigger(trigger);
     this.tooltip.textContent = content;
+    this.assignActiveTrigger(trigger);
     this.tooltip.hidden = false;
     this.openState = true;
     this.container.classList.add(
@@ -952,6 +1192,11 @@ implements SharedTooltipController {
 
     this.updatePosition();
 
+    if (!this.showNativeHint(trigger)) {
+      this.close("platform");
+      return false;
+    }
+
     this.dispatch(sharedTooltipEvents.open, {
       trigger,
       reason
@@ -963,8 +1208,10 @@ implements SharedTooltipController {
   private assignActiveTrigger(
     trigger: HTMLElement
   ): void {
+    this.releaseActiveDescription();
     this.releaseActiveAnchor();
     this.currentTrigger = trigger;
+    this.assignActiveDescription(trigger);
 
     if (!this.anchorSupported) {
       return;
@@ -990,6 +1237,52 @@ implements SharedTooltipController {
     };
   }
 
+  private assignActiveDescription(
+    trigger: HTMLElement
+  ): void {
+    if (
+      this.options.semantics !== "describedby" ||
+      !this.descriptionTooltipId
+    ) {
+      return;
+    }
+
+    const describedBy =
+      trigger.getAttribute("aria-describedby");
+
+    const tokens = uniqueTokens([
+      ...tokenize(describedBy),
+      this.descriptionTooltipId
+    ]);
+
+    trigger.setAttribute(
+      "aria-describedby",
+      tokens.join(" ")
+    );
+
+    this.activeDescriptionState = {
+      trigger,
+      describedBy
+    };
+  }
+
+  private releaseActiveDescription(): void {
+    if (!this.activeDescriptionState) {
+      return;
+    }
+
+    const { trigger, describedBy } =
+      this.activeDescriptionState;
+
+    restoreAttribute(
+      trigger,
+      "aria-describedby",
+      describedBy
+    );
+
+    this.activeDescriptionState = null;
+  }
+
   private releaseActiveAnchor(): void {
     if (!this.activeAnchorState) {
       return;
@@ -1002,6 +1295,101 @@ implements SharedTooltipController {
     );
 
     this.activeAnchorState = null;
+  }
+
+  private showNativeHint(
+    trigger: HTMLElement
+  ): boolean {
+    const tooltip = this.nativeHintElement;
+
+    if (!tooltip) {
+      return true;
+    }
+
+    if (isPopoverOpen(tooltip)) {
+      return true;
+    }
+
+    try {
+      tooltip.showPopover({
+        source: trigger
+      });
+
+      return isPopoverOpen(tooltip);
+    } catch {
+      return false;
+    }
+  }
+
+  private retargetNativeHint(
+    trigger: HTMLElement
+  ): boolean {
+    const tooltip = this.nativeHintElement;
+
+    if (!tooltip) {
+      return true;
+    }
+
+    if (!isPopoverOpen(tooltip)) {
+      return this.showNativeHint(trigger);
+    }
+
+    try {
+      // A synchronous hide/show updates the popover source before the
+      // browser gets a rendering opportunity.
+      tooltip.hidePopover();
+      tooltip.showPopover({
+        source: trigger
+      });
+
+      return isPopoverOpen(tooltip);
+    } catch {
+      return false;
+    }
+  }
+
+  private hideNativeHint(): void {
+    const tooltip = this.nativeHintElement;
+
+    if (!tooltip || !isPopoverOpen(tooltip)) {
+      return;
+    }
+
+    try {
+      tooltip.hidePopover();
+    } catch {
+      // Core state still closes and destroy restores authored state.
+    }
+  }
+
+  private handleNativeBeforeToggle(
+    event: Event
+  ): void {
+    const toggleEvent =
+      event as PopoverToggleEvent;
+
+    if (
+      toggleEvent.newState === "open" &&
+      !this.openState
+    ) {
+      event.preventDefault();
+    }
+  }
+
+  private handleNativeToggle(
+    event: Event
+  ): void {
+    const toggleEvent =
+      event as PopoverToggleEvent;
+
+    if (
+      toggleEvent.newState === "closed" &&
+      this.openState &&
+      this.nativeHintElement &&
+      !isPopoverOpen(this.nativeHintElement)
+    ) {
+      this.close("platform");
+    }
   }
 
   private updatePosition(): void {

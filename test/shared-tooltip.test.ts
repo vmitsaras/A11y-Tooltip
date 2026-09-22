@@ -111,6 +111,9 @@ describe("createSharedTooltip", () => {
     ).toHaveLength(1);
 
     expect(controller.tooltip.getAttribute("aria-hidden")).toBe("true");
+    expect(controller.renderMode).toBe("anchored");
+    expect(controller.semantics).toBe("visual-only");
+    expect(controller.usesNativeHint).toBe(false);
     expect(first.hasAttribute("aria-describedby")).toBe(false);
     expect(second.hasAttribute("aria-describedby")).toBe(false);
   });
@@ -415,6 +418,141 @@ describe("createSharedTooltip", () => {
 
     expect(innerController.isOpen).toBe(true);
     expect(outerController.isOpen).toBe(false);
+  });
+
+  it("moves experimental aria-describedby ownership between active triggers", () => {
+    const { container, first, second } = renderToolbar();
+
+    first.setAttribute(
+      "aria-describedby",
+      "existing-help"
+    );
+
+    const controller = createSharedTooltip(container, {
+      triggers: "[data-tooltip-text]",
+      getContent(trigger) {
+        return trigger.dataset.tooltipText;
+      },
+      semantics: "describedby",
+      showDelay: 0,
+      hideDelay: 0
+    });
+
+    expect(
+      controller.tooltip.hasAttribute("aria-hidden")
+    ).toBe(false);
+
+    focusIn(first);
+
+    const tooltipId = controller.tooltip.id;
+
+    expect(tooltipId).toMatch(/^a11y-tooltip-shared-\d+$/u);
+    expect(first.getAttribute("aria-describedby")).toBe(
+      `existing-help ${tooltipId}`
+    );
+
+    focusOut(first, second);
+
+    expect(first.getAttribute("aria-describedby")).toBe(
+      "existing-help"
+    );
+    expect(second.getAttribute("aria-describedby")).toBe(
+      tooltipId
+    );
+
+    focusOut(second);
+
+    expect(
+      second.hasAttribute("aria-describedby")
+    ).toBe(false);
+  });
+
+  it("restores describedby state after Escape and destroy", () => {
+    const { container, first } = renderToolbar();
+    const authored = document.createElement("span");
+
+    authored.setAttribute("aria-hidden", "true");
+    document.body.append(authored);
+
+    const controller = createSharedTooltip(container, {
+      triggers: "[data-tooltip-text]",
+      getContent(trigger) {
+        return trigger.dataset.tooltipText;
+      },
+      tooltip: authored,
+      semantics: "describedby"
+    });
+
+    focusIn(first);
+
+    expect(authored.id).not.toBe("");
+    expect(first.getAttribute("aria-describedby")).toBe(
+      authored.id
+    );
+
+    document.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "Escape"
+      })
+    );
+
+    expect(
+      first.hasAttribute("aria-describedby")
+    ).toBe(false);
+
+    controller.destroy();
+
+    expect(authored.hasAttribute("id")).toBe(false);
+    expect(authored.getAttribute("aria-hidden")).toBe("true");
+  });
+
+  it("rejects duplicate authored ids in describedby mode", () => {
+    const { container } = renderToolbar();
+    const authored = document.createElement("span");
+    const duplicate = document.createElement("span");
+
+    authored.id = "shared-duplicate";
+    duplicate.id = "shared-duplicate";
+
+    document.body.append(authored, duplicate);
+
+    expect(() =>
+      createSharedTooltip(container, {
+        triggers: "[data-tooltip-text]",
+        getContent(trigger) {
+          return trigger.dataset.tooltipText;
+        },
+        tooltip: authored,
+        semantics: "describedby"
+      })
+    ).toThrow(/must be unique/u);
+
+    expect(
+      container.hasAttribute(
+        "data-a11y-shared-tooltip"
+      )
+    ).toBe(false);
+  });
+
+  it("falls back to anchored rendering when native hint support is unavailable", () => {
+    const { container, first } = renderToolbar();
+
+    const controller = createSharedTooltip(container, {
+      triggers: "[data-tooltip-text]",
+      getContent(trigger) {
+        return trigger.dataset.tooltipText;
+      },
+      renderMode: "hint-popover"
+    });
+
+    focusIn(first);
+
+    expect(controller.renderMode).toBe("hint-popover");
+    expect(controller.usesNativeHint).toBe(false);
+    expect(
+      controller.tooltip.hasAttribute("popover")
+    ).toBe(false);
+    expect(controller.isOpen).toBe(true);
   });
 
   it("restores an authored tooltip and removes generated state on destroy", () => {

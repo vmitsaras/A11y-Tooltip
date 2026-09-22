@@ -22,3 +22,16 @@ The controller:
 - does not add or move `aria-describedby`;
 - keeps the shared visual tooltip hidden from assistive technology with
   `aria-hidden="true"`.
+
+Experimental modes:
+
+- `?render=hint` requests native `popover="hint"` rendering with anchored
+  fallback when unsupported.
+- `?semantics=describedby` enables dynamic active-trigger-only
+  `aria-describedby` ownership.
+- Combine both with
+  `?render=hint&semantics=describedby`.
+
+The describedby mode is intentionally experimental until manual assistive-
+technology verification covers focus entry, rapid retargeting, Escape
+dismissal, and touch exploration.
