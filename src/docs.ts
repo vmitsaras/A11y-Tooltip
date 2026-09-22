@@ -109,6 +109,18 @@ if (root instanceof HTMLElement) {
       type: "(options: SelectorAdapterOptions) => TooltipAdapter",
       description:
         "From a11y-tooltip/adapters: maps exactly one custom trigger and tooltip selector into the core tooltip contract."
+    },
+    {
+      name: "scanTooltipRoot(root, options?)",
+      type: "(root: HTMLElement, options?: ScanTooltipRootOptions) => readonly TooltipDiagnostic[]",
+      description:
+        "From a11y-tooltip/diagnostics: runs explicit read-only integration checks for one tooltip root."
+    },
+    {
+      name: "scanTooltips(options?)",
+      type: "(options?: ScanTooltipsOptions) => readonly TooltipDiagnostic[]",
+      description:
+        "From a11y-tooltip/diagnostics: scans matching tooltip roots in a scope without mutating them."
     }
   ],
   examples: [
@@ -134,6 +146,12 @@ if (root instanceof HTMLElement) {
       description:
         "Maps legacy BEM or design-system selectors into the tooltip core without changing its accessibility behavior.",
       path: "examples/selector-adapter"
+    },
+    {
+      name: "Diagnostics",
+      description:
+        "Runs explicit read-only checks against intentionally flawed tooltip integrations.",
+      path: "examples/diagnostics"
     }
   ]
 } satisfies PluginDocs;
