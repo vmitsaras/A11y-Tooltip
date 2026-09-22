@@ -94,14 +94,18 @@ function resolveTarget(
     return instance.trigger;
   }
 
-  if (typeof target === "function") {
-    const resolved = target(instance);
+  try {
+    if (typeof target === "function") {
+      const resolved = target(instance);
+      return resolved instanceof HTMLElement ? resolved : null;
+    }
+
+    const resolved = instance.root.querySelector(target);
+
     return resolved instanceof HTMLElement ? resolved : null;
+  } catch {
+    return null;
   }
-
-  const resolved = instance.root.querySelector(target);
-
-  return resolved instanceof HTMLElement ? resolved : null;
 }
 
 function usesVerticalWritingMode(element: HTMLElement): boolean {
