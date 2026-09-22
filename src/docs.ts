@@ -127,6 +127,18 @@ if (root instanceof HTMLElement) {
       type: "() => TooltipAddon",
       description:
         "From a11y-tooltip/addons: experimentally renders supported tooltips as native hint popovers in the top layer and synchronizes platform dismissal."
+    },
+    {
+      name: "createSharedTooltip(container, options)",
+      type: "(container: HTMLElement, options: SharedTooltipOptions) => SharedTooltipController",
+      description:
+        "From a11y-tooltip/shared: coordinates one visual-only tooltip across many delegated, already-accessibly-named triggers."
+    },
+    {
+      name: "scanSharedTooltip(container, options)",
+      type: "(container: HTMLElement, options: ScanSharedTooltipOptions) => readonly TooltipDiagnostic[]",
+      description:
+        "From a11y-tooltip/diagnostics: runs read-only integration checks for a shared-tooltip container."
     }
   ],
   examples: [
@@ -164,6 +176,12 @@ if (root instanceof HTMLElement) {
       description:
         "Exercises top-layer hint rendering, clipping escape, hint-stack behavior, and coexistence with an auto popover.",
       path: "examples/hint-popover"
+    },
+    {
+      name: "Shared tooltip controller",
+      description:
+        "Coordinates one visual tooltip across a dense delegated toolbar, including retargeting and dynamic triggers.",
+      path: "examples/shared-tooltip"
     }
   ]
 } satisfies PluginDocs;
