@@ -27,6 +27,10 @@
     "./diagnostics": {
       "types": "./dist/diagnostics/index.d.ts",
       "import": "./dist/diagnostics/index.js"
+    },
+    "./shared": {
+      "types": "./dist/shared/index.d.ts",
+      "import": "./dist/shared/index.js"
     }
   },
   "files": [
