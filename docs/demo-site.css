@@ -240,6 +240,36 @@ kbd {
   white-space: nowrap;
 }
 
+.shared-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-block: 3rem;
+  padding: 1rem;
+  border: 1px solid #d7d2c8;
+  border-radius: 0.75rem;
+  background: #ffffff;
+}
+
+.shared-toolbar__button {
+  display: inline-grid;
+  place-items: center;
+  min-inline-size: 3rem;
+  min-block-size: 3rem;
+  padding: 0.5rem;
+  border: 1px solid #afa89c;
+  border-radius: 0.5rem;
+  background: #fffdf8;
+  color: #17191d;
+  font: inherit;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.shared-toolbar__button:hover {
+  border-color: #6f685e;
+}
+
 .hint-popover-demo__clip-box {
   inline-size: min(17rem, 100%);
   block-size: 7rem;

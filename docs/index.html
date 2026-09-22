@@ -248,6 +248,67 @@ initTooltipsAll({
       </p>
     </section>
 
+    <section class="demo-panel prose" aria-labelledby="shared-title" data-demo-shared>
+      <p class="eyebrow">Shared controller</p>
+      <h2 id="shared-title">Use one visual tooltip for a delegated selector</h2>
+      <p>
+        Use <code>createSharedTooltip()</code> when a toolbar, grid, or command
+        surface has many already-named controls that only need visual hover and
+        focus hints. The controller listens from one container, reads content
+        from each matching trigger, and keeps the shared tooltip out of the
+        accessible-name path.
+      </p>
+      <p>
+        Focus or hover any command below. Each button keeps its own
+        <code>aria-label</code>; <code>data-tooltip-text</code> supplies only
+        the shared visual hint.
+      </p>
+      <div class="shared-toolbar" data-demo-shared-toolbar aria-label="Editor commands">
+        <button
+          class="shared-toolbar__button"
+          type="button"
+          aria-label="Bold"
+          data-tooltip-text="Bold"
+        >B</button>
+        <button
+          class="shared-toolbar__button"
+          type="button"
+          aria-label="Italic"
+          data-tooltip-text="Italic"
+        ><em>I</em></button>
+        <button
+          class="shared-toolbar__button"
+          type="button"
+          aria-label="Underline"
+          data-tooltip-text="Underline"
+        ><span aria-hidden="true">U</span></button>
+        <button
+          class="shared-toolbar__button"
+          type="button"
+          aria-label="Insert link"
+          data-tooltip-text="Insert link"
+        >↗</button>
+      </div>
+      <pre class="demo-code"><code>import {
+  createSharedTooltip
+} from "a11y-tooltip/shared";
+import "a11y-tooltip/styles.css";
+
+const toolbar = document.querySelector("[data-demo-shared-toolbar]");
+
+if (toolbar instanceof HTMLElement) {
+  const controller = createSharedTooltip(toolbar, {
+    triggers: "[data-tooltip-text]",
+
+    getContent(trigger) {
+      return trigger.dataset.tooltipText ?? "";
+    },
+
+    placement: "bottom"
+  });
+}</code></pre>
+    </section>
+
     <section class="demo-panel" aria-labelledby="event-title">
       <div class="demo-panel__heading">
         <div>
@@ -312,6 +373,7 @@ initTooltipsAll({
 
   <script type="module">
     import { initTooltipsAll } from "./dist/index.js";
+    import { createSharedTooltip } from "./dist/shared/index.js";
 
     import {
       createAnchorPositioningAddon,
@@ -329,6 +391,18 @@ initTooltipsAll({
     initTooltipsAll({
       addons: [createOverflowOnlyAddon()]
     }, document.querySelector("[data-demo-overflow]"));
+
+    const sharedToolbar = document.querySelector("[data-demo-shared-toolbar]");
+
+    if (sharedToolbar instanceof HTMLElement) {
+      createSharedTooltip(sharedToolbar, {
+        triggers: "[data-tooltip-text]",
+        getContent(trigger) {
+          return trigger.dataset.tooltipText ?? "";
+        },
+        placement: "bottom"
+      });
+    }
 
     const log = document.querySelector("[data-event-log]");
     const interestingEvents = new Set([

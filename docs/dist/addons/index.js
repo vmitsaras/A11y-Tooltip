@@ -1,4 +1,5 @@
 import { tooltipEvents } from "../index.js";
+import { a as restoreInlineStyle, c as supportsAnchorPositioning, i as normalizeAnchorFallbacks, n as createAnchorName, o as serializeAnchorFallbacks, r as mergeAnchorName, s as snapshotInlineStyle, t as ANCHOR_POSITIONING_FALLBACKS } from "../anchor-positioning-DKoOS3IM.js";
 //#region src/addons/overflow-only.ts
 const OVERFLOW_AXES = Object.freeze([
 	"inline",
@@ -81,82 +82,15 @@ function createOverflowOnlyAddon(options = {}) {
 }
 //#endregion
 //#region src/addons/anchor-positioning.ts
-const ANCHOR_POSITIONING_FALLBACKS = Object.freeze([
-	"flip-block",
-	"flip-inline",
-	"flip-start",
-	"flip-block flip-inline"
-]);
 const ROOT_ATTRIBUTE$1 = "data-a11y-tooltip-anchor-positioning";
-const BLOCK_FIRST_FALLBACKS = Object.freeze([
-	"flip-block",
-	"flip-inline",
-	"flip-block flip-inline"
-]);
-const INLINE_FIRST_FALLBACKS = Object.freeze([
-	"flip-inline",
-	"flip-block",
-	"flip-block flip-inline"
-]);
-const GLOBAL_KEYWORDS = /* @__PURE__ */ new Set([
-	"inherit",
-	"initial",
-	"revert",
-	"revert-layer",
-	"unset"
-]);
-let generatedAnchorId = 0;
 const ACTIVE_ANCHOR_SETUPS = /* @__PURE__ */ new WeakMap();
-function isFallback(value) {
-	return typeof value === "string" && ANCHOR_POSITIONING_FALLBACKS.includes(value);
-}
-function defaultFallbacks(placement) {
-	return placement === "top" || placement === "bottom" ? BLOCK_FIRST_FALLBACKS : INLINE_FIRST_FALLBACKS;
-}
-function normalizeFallbacks(value, placement) {
-	if (value === void 0) return defaultFallbacks(placement);
-	if (!Array.isArray(value)) return defaultFallbacks(placement);
-	return Object.freeze(Array.from(new Set(value.filter(isFallback))));
-}
-function snapshotInlineStyle(element, property) {
-	return {
-		value: element.style.getPropertyValue(property),
-		priority: element.style.getPropertyPriority(property)
-	};
-}
-function restoreInlineStyle(element, property, snapshot) {
-	if (snapshot.value.length === 0) {
-		element.style.removeProperty(property);
-		return;
-	}
-	element.style.setProperty(property, snapshot.value, snapshot.priority);
-}
-function mergeAnchorName(authoredValue, generatedName) {
-	const value = authoredValue.trim();
-	if (value.length === 0 || value === "none" || GLOBAL_KEYWORDS.has(value)) return generatedName;
-	const names = value.split(",").map((name) => name.trim()).filter((name) => name.startsWith("--"));
-	if (names.length === 0) return generatedName;
-	if (!names.includes(generatedName)) names.push(generatedName);
-	return names.join(", ");
-}
-function createAnchorName() {
-	generatedAnchorId += 1;
-	return `--a11y-tooltip-anchor-${generatedAnchorId}`;
-}
-function serializeFallbacks(fallbacks) {
-	return fallbacks.length > 0 ? fallbacks.join(", ") : "none";
-}
 /**
 * Progressively enhances the default tooltip placement with CSS Anchor
 * Positioning.
 *
-* The addon creates a unique anchor association per tooltip instance and
-* supplies position-try fallback tactics. The stylesheet activates the
-* anchor-positioned layout only inside an @supports rule, so browsers without
-* the required CSS features keep the existing absolute-position fallback.
-*
-* The addon does not move focus, change ARIA, reparent DOM, install observers,
-* or introduce a positioning runtime dependency.
+* The setup is reference-counted so multiple addons can safely share the same
+* generated anchor state and authored styles are restored only after the last
+* consumer releases it.
 */
 function setupAnchorPositioning(instance, options = {}) {
 	const active = ACTIVE_ANCHOR_SETUPS.get(instance);
@@ -176,7 +110,7 @@ function setupAnchorPositioning(instance, options = {}) {
 		};
 	}
 	const anchorName = createAnchorName();
-	const fallbacks = normalizeFallbacks(options.fallbacks, instance.options.placement);
+	const fallbacks = normalizeAnchorFallbacks(options.fallbacks, instance.options.placement);
 	const originalRootAttribute = instance.root.getAttribute(ROOT_ATTRIBUTE$1);
 	const originalAnchorName = snapshotInlineStyle(instance.trigger, "anchor-name");
 	const originalPositionAnchor = snapshotInlineStyle(instance.tooltip, "position-anchor");
@@ -184,7 +118,7 @@ function setupAnchorPositioning(instance, options = {}) {
 	instance.root.setAttribute(ROOT_ATTRIBUTE$1, "");
 	instance.trigger.style.setProperty("anchor-name", mergeAnchorName(originalAnchorName.value, anchorName), originalAnchorName.priority);
 	instance.tooltip.style.setProperty("position-anchor", anchorName, originalPositionAnchor.priority);
-	instance.tooltip.style.setProperty("position-try-fallbacks", serializeFallbacks(fallbacks), originalPositionTryFallbacks.priority);
+	instance.tooltip.style.setProperty("position-try-fallbacks", serializeAnchorFallbacks(fallbacks), originalPositionTryFallbacks.priority);
 	ACTIVE_ANCHOR_SETUPS.set(instance, {
 		references: 1,
 		restore() {
@@ -227,11 +161,6 @@ function supportsHintPopover(element) {
 	const probe = element.ownerDocument.createElement("div");
 	probe.setAttribute("popover", "hint");
 	return probe.popover === "hint";
-}
-function supportsAnchorPositioning(element) {
-	const css = element.ownerDocument.defaultView?.CSS;
-	if (!css || typeof css.supports !== "function") return false;
-	return css.supports("anchor-name: --a11y-tooltip-anchor") && css.supports("position-anchor: --a11y-tooltip-anchor") && css.supports("position-area: top span-all") && css.supports("align-self: anchor-center") && css.supports("position-try-fallbacks: flip-block");
 }
 function isPopoverOpen(element) {
 	try {

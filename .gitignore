@@ -82,12 +82,9 @@ out
 .nuxt
 dist
 
-# Keep the runtime addon entry available in the committed Pages demo.
+# Keep the generated runtime available in the committed Pages demo.
 !docs/dist/
-docs/dist/*
-!docs/dist/addons/
-docs/dist/addons/*
-!docs/dist/addons/index.js
+!docs/dist/**
 .output
 
 # Gatsby files
