@@ -189,6 +189,25 @@ normal `TooltipInstance`. Dynamic shared `aria-describedby` ownership is
 implemented only as an experimental opt-in and remains pending manual NVDA,
 JAWS, VoiceOver, and TalkBack verification.
 
+## Shared tooltip motion
+
+`motion: "move"` is a visual retarget enhancement only.
+
+- Content and accessibility relationships update synchronously before the
+  animation is created.
+- The controller does not delay focus handling, `aria-describedby` ownership,
+  Escape dismissal, or native hint source synchronization to wait for motion.
+- Only visual position is animated; tooltip text is not scaled.
+- `prefers-reduced-motion: reduce` disables retarget travel and applies the
+  final state immediately.
+- Interrupted motion is canceled and restarted from the current rendered
+  geometry rather than queued.
+- Closing or destroying the controller cancels an active WAAPI animation.
+
+Browser automation verifies reduced-motion behavior and confirms that
+experimental describedby ownership is already correct while the tooltip is
+still visually moving.
+
 ## Manual release checks
 
 | Check | Environment | Status |

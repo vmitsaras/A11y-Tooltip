@@ -35,3 +35,13 @@ Experimental modes:
 The describedby mode is intentionally experimental until manual assistive-
 technology verification covers focus entry, rapid retargeting, Escape
 dismissal, and touch exploration.
+
+Motion demo:
+
+- `?motion=move` enables native WAAPI FLIP retarget motion.
+- `?motion=move&motionDuration=600` slows the motion for inspection.
+- Combine with the experimental modes, for example
+  `?render=hint&semantics=describedby&motion=move`.
+
+Motion affects retarget travel only. Content and accessibility state update
+immediately, and reduced-motion preferences disable the travel animation.

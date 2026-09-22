@@ -19,6 +19,10 @@ import {
   type HintPopoverElement,
   type PopoverToggleEvent
 } from "../internal/hint-popover.js";
+import {
+  createWaapiFlipMotionController,
+  type WaapiFlipMotionController
+} from "../internal/waapi-flip-motion.js";
 
 const COMPONENT_NAME = "a11y-tooltip-shared";
 const ROOT_SELECTOR = "[data-a11y-shared-tooltip]";
@@ -83,6 +87,15 @@ export const SHARED_TOOLTIP_SEMANTICS =
 export type SharedTooltipSemantics =
   (typeof SHARED_TOOLTIP_SEMANTICS)[number];
 
+export const SHARED_TOOLTIP_MOTIONS =
+  Object.freeze([
+    "none",
+    "move"
+  ] as const);
+
+export type SharedTooltipMotion =
+  (typeof SHARED_TOOLTIP_MOTIONS)[number];
+
 export interface SharedTooltipOptions {
   /**
    * Selector for delegated tooltip triggers inside the controller container.
@@ -121,6 +134,20 @@ export interface SharedTooltipOptions {
    * The default remains visual-only.
    */
   semantics?: SharedTooltipSemantics;
+  /**
+   * Retarget motion. "move" uses a zero-dependency WAAPI FLIP animation
+   * between the current visual position and the new anchored position.
+   * The default is "none".
+   */
+  motion?: SharedTooltipMotion;
+  /**
+   * Retarget animation duration in milliseconds. Defaults to 180.
+   */
+  motionDuration?: number;
+  /**
+   * WAAPI easing string used by motion="move".
+   */
+  motionEasing?: string;
 }
 
 interface ResolvedSharedTooltipOptions {
@@ -135,6 +162,9 @@ interface ResolvedSharedTooltipOptions {
   fallbacks: readonly SharedTooltipPositionFallback[];
   renderMode: SharedTooltipRenderMode;
   semantics: SharedTooltipSemantics;
+  motion: SharedTooltipMotion;
+  motionDuration: number;
+  motionEasing: string;
 }
 
 export interface SharedTooltipController {
@@ -144,6 +174,7 @@ export interface SharedTooltipController {
   readonly isOpen: boolean;
   readonly renderMode: SharedTooltipRenderMode;
   readonly semantics: SharedTooltipSemantics;
+  readonly motion: SharedTooltipMotion;
   readonly usesNativeHint: boolean;
   showFor(
     trigger: HTMLElement,
@@ -190,7 +221,10 @@ const DEFAULTS = Object.freeze({
   hideDelay: 100,
   placement: "top" as TooltipPlacement,
   renderMode: "anchored" as SharedTooltipRenderMode,
-  semantics: "visual-only" as SharedTooltipSemantics
+  semantics: "visual-only" as SharedTooltipSemantics,
+  motion: "none" as SharedTooltipMotion,
+  motionDuration: 180,
+  motionEasing: "cubic-bezier(0.2, 0.8, 0.2, 1)"
 });
 
 const INSTANCES =
@@ -256,6 +290,18 @@ function normalizeOptions(
     ? (options.semantics as SharedTooltipSemantics)
     : DEFAULTS.semantics;
 
+  const motion = SHARED_TOOLTIP_MOTIONS.includes(
+    options.motion as SharedTooltipMotion
+  )
+    ? (options.motion as SharedTooltipMotion)
+    : DEFAULTS.motion;
+
+  const motionEasing =
+    typeof options.motionEasing === "string" &&
+    options.motionEasing.trim().length > 0
+      ? options.motionEasing.trim()
+      : DEFAULTS.motionEasing;
+
   return Object.freeze({
     triggers,
     getContent: options.getContent,
@@ -274,7 +320,13 @@ function normalizeOptions(
       placement
     ),
     renderMode,
-    semantics
+    semantics,
+    motion,
+    motionDuration: toSafeDelay(
+      options.motionDuration,
+      DEFAULTS.motionDuration
+    ),
+    motionEasing
   });
 }
 
@@ -418,6 +470,7 @@ implements SharedTooltipController {
   private readonly anchorSupported: boolean;
   private readonly anchorName: string;
   private readonly nativeHintElement: HintPopoverElement | null;
+  private readonly flipMotion: WaapiFlipMotionController | null;
 
   private descriptionTooltipId: string | null = null;
 
@@ -500,6 +553,14 @@ implements SharedTooltipController {
         ? this.tooltip
         : null;
 
+    this.flipMotion =
+      this.options.motion === "move"
+        ? createWaapiFlipMotionController({
+            duration: this.options.motionDuration,
+            easing: this.options.motionEasing
+          })
+        : null;
+
     this.handleFocusIn = this.handleFocusIn.bind(this);
     this.handleFocusOut = this.handleFocusOut.bind(this);
     this.handlePointerOver =
@@ -543,6 +604,10 @@ implements SharedTooltipController {
 
   get semantics(): SharedTooltipSemantics {
     return this.options.semantics;
+  }
+
+  get motion(): SharedTooltipMotion {
+    return this.options.motion;
   }
 
   get usesNativeHint(): boolean {
@@ -617,6 +682,7 @@ implements SharedTooltipController {
     }
 
     this.openState = false;
+    this.flipMotion?.cancel();
     this.hideNativeHint();
     this.tooltip.hidden = true;
     this.container.classList.remove(CLASSES.open);
@@ -1142,12 +1208,26 @@ implements SharedTooltipController {
         return false;
       }
 
-      this.releaseActiveDescription();
-      this.tooltip.textContent = content;
-      this.assignActiveTrigger(trigger);
-      this.updatePosition();
+      const applyRetarget = (): boolean => {
+        // Semantic/content state changes synchronously. Motion only decorates
+        // the visual displacement after the new state is already correct.
+        this.releaseActiveDescription();
+        this.tooltip.textContent = content;
+        this.assignActiveTrigger(trigger);
+        this.updatePosition();
 
-      if (!this.retargetNativeHint(trigger)) {
+        return this.retargetNativeHint(trigger);
+      };
+
+      const nativeRetargeted = this.flipMotion
+        ? this.flipMotion.retarget(
+            this.tooltip,
+            applyRetarget
+          )
+        : applyRetarget();
+
+      if (!nativeRetargeted) {
+        this.flipMotion?.cancel();
         this.close("platform");
         return false;
       }

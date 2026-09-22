@@ -4,6 +4,7 @@ interface SharedTooltipTestController {
   readonly activeTrigger: HTMLElement | null;
   readonly isOpen: boolean;
   readonly semantics: "visual-only" | "describedby";
+  readonly motion: "none" | "move";
   readonly usesNativeHint: boolean;
   refresh(): boolean;
   destroy(): void;
@@ -567,5 +568,249 @@ test("direct native shared opening cannot bypass controller state", async ({
       window.__sharedTooltip.isOpen
     )
   ).toBe(false);
+});
+
+test("WAAPI move motion animates one shared tooltip between triggers", async ({
+  page
+}) => {
+  await page.goto(
+    "/examples/shared-tooltip/?count=3&motion=move&motionDuration=600"
+  );
+
+  const triggers = page.locator("[data-tooltip-text]");
+  const tooltip = page.locator(
+    "[data-a11y-shared-tooltip-content]"
+  );
+
+  await triggers.nth(0).focus();
+  await triggers.nth(1).focus();
+
+  await expect(tooltip).toHaveText("Command 2");
+
+  const state = await tooltip.evaluate((element) => {
+    const animations = element.getAnimations();
+
+    return {
+      count: animations.length,
+      duration:
+        animations[0]?.effect?.getTiming().duration ??
+        null
+    };
+  });
+
+  expect(state.count).toBe(1);
+  expect(state.duration).toBe(600);
+
+  expect(
+    await page.evaluate(() =>
+      window.__sharedTooltip.motion
+    )
+  ).toBe("move");
+
+  await expect.poll(async () =>
+    tooltip.evaluate((element) =>
+      element.getAnimations().length
+    )
+  ).toBe(0);
+});
+
+test("rapid WAAPI retargeting replaces motion instead of queueing it", async ({
+  page
+}) => {
+  await page.goto(
+    "/examples/shared-tooltip/?count=5&motion=move&motionDuration=700"
+  );
+
+  const triggers = page.locator("[data-tooltip-text]");
+  const tooltip = page.locator(
+    "[data-a11y-shared-tooltip-content]"
+  );
+
+  await triggers.nth(0).focus();
+  await triggers.nth(1).focus();
+
+  await page.waitForTimeout(80);
+
+  const middleRect = await tooltip.boundingBox();
+
+  await triggers.nth(2).focus();
+
+  await expect(tooltip).toHaveText("Command 3");
+
+  expect(
+    await tooltip.evaluate((element) =>
+      element.getAnimations().length
+    )
+  ).toBe(1);
+
+  const retargetRect = await tooltip.boundingBox();
+
+  expect(middleRect).not.toBeNull();
+  expect(retargetRect).not.toBeNull();
+
+  await expect.poll(async () =>
+    tooltip.evaluate((element) =>
+      element.getAnimations().length
+    )
+  ).toBe(0);
+
+  const finalRect = await tooltip.boundingBox();
+
+  expect(finalRect).not.toBeNull();
+
+  if (middleRect && retargetRect && finalRect) {
+    const middleCenter =
+      middleRect.x + middleRect.width / 2;
+    const retargetCenter =
+      retargetRect.x + retargetRect.width / 2;
+    const finalCenter =
+      finalRect.x + finalRect.width / 2;
+
+    expect(
+      Math.abs(retargetCenter - middleCenter)
+    ).toBeLessThan(
+      Math.abs(finalCenter - middleCenter)
+    );
+  }
+
+  expect(
+    await page.evaluate(() =>
+      window.__sharedTooltip.activeTrigger?.dataset.triggerIndex
+    )
+  ).toBe("3");
+});
+
+test("prefers-reduced-motion disables shared retarget travel", async ({
+  page
+}) => {
+  await page.emulateMedia({
+    reducedMotion: "reduce"
+  });
+
+  await page.goto(
+    "/examples/shared-tooltip/?count=3&motion=move&motionDuration=600"
+  );
+
+  const triggers = page.locator("[data-tooltip-text]");
+  const tooltip = page.locator(
+    "[data-a11y-shared-tooltip-content]"
+  );
+
+  await triggers.nth(0).focus();
+  await triggers.nth(1).focus();
+
+  await expect(tooltip).toHaveText("Command 2");
+
+  expect(
+    await tooltip.evaluate((element) =>
+      element.getAnimations().length
+    )
+  ).toBe(0);
+});
+
+test("motion does not delay describedby ownership updates", async ({
+  page
+}) => {
+  await page.goto(
+    "/examples/shared-tooltip/?count=3&motion=move&motionDuration=600&semantics=describedby"
+  );
+
+  const triggers = page.locator("[data-tooltip-text]");
+  const first = triggers.nth(0);
+  const second = triggers.nth(1);
+  const tooltip = page.locator(
+    "[data-a11y-shared-tooltip-content]"
+  );
+
+  await first.focus();
+
+  const tooltipId = await tooltip.getAttribute("id");
+
+  expect(tooltipId).toBeTruthy();
+
+  await second.focus();
+
+  await expect(first).not.toHaveAttribute(
+    "aria-describedby"
+  );
+  await expect(second).toHaveAttribute(
+    "aria-describedby",
+    tooltipId ?? ""
+  );
+  await expect(second).toHaveAccessibleDescription(
+    "Command 2"
+  );
+
+  expect(
+    await tooltip.evaluate((element) =>
+      element.getAnimations().length
+    )
+  ).toBe(1);
+});
+
+test("WAAPI move motion works with native hint top-layer retargeting", async ({
+  page
+}) => {
+  await page.goto(
+    "/examples/shared-tooltip/?count=3&motion=move&motionDuration=600&render=hint"
+  );
+
+  const triggers = page.locator("[data-tooltip-text]");
+  const tooltip = page.locator(
+    "[data-a11y-shared-tooltip-content]"
+  );
+
+  await triggers.nth(0).focus();
+  await triggers.nth(1).focus();
+
+  expect(
+    await tooltip.evaluate((element) =>
+      element.matches(":popover-open")
+    )
+  ).toBe(true);
+
+  expect(
+    await tooltip.evaluate((element) =>
+      element.getAnimations().length
+    )
+  ).toBe(1);
+
+  expect(
+    await page.evaluate(() =>
+      window.__sharedTooltip.isOpen
+    )
+  ).toBe(true);
+});
+
+test("closing during shared motion cancels the active animation", async ({
+  page
+}) => {
+  await page.goto(
+    "/examples/shared-tooltip/?count=3&motion=move&motionDuration=900"
+  );
+
+  const triggers = page.locator("[data-tooltip-text]");
+  const tooltip = page.locator(
+    "[data-a11y-shared-tooltip-content]"
+  );
+
+  await triggers.nth(0).focus();
+  await triggers.nth(1).focus();
+
+  expect(
+    await tooltip.evaluate((element) =>
+      element.getAnimations().length
+    )
+  ).toBe(1);
+
+  await page.keyboard.press("Escape");
+
+  await expect(tooltip).toBeHidden();
+
+  expect(
+    await tooltip.evaluate((element) =>
+      element.getAnimations().length
+    )
+  ).toBe(0);
 });
 
