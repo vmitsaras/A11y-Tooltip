@@ -55,6 +55,7 @@ export type SharedTooltipCloseReason =
   | "destroy"
   | "escape"
   | "leave"
+  | "platform"
   | "trigger-removed";
 
 export type SharedTooltipReason =
@@ -569,6 +570,7 @@ implements SharedTooltipController {
       reason !== "content-empty" &&
       reason !== "escape" &&
       reason !== "destroy" &&
+      reason !== "platform" &&
       reason !== "trigger-removed";
 
     const allowed = this.dispatch(
@@ -584,11 +586,15 @@ implements SharedTooltipController {
       return false;
     }
 
-    if (reason === "escape" && this.currentTrigger) {
+    if (
+      (reason === "escape" || reason === "platform") &&
+      this.currentTrigger
+    ) {
       this.dismissedTrigger = this.currentTrigger;
     }
 
     this.openState = false;
+    this.hideNativeHint();
     this.tooltip.hidden = true;
     this.container.classList.remove(CLASSES.open);
     this.container.ownerDocument.removeEventListener(
@@ -597,6 +603,7 @@ implements SharedTooltipController {
     );
 
     this.stopFallbackListeners();
+    this.releaseActiveDescription();
     this.releaseActiveAnchor();
 
     const previousTrigger = this.currentTrigger ?? undefined;
@@ -767,12 +774,43 @@ implements SharedTooltipController {
     );
     this.tooltip.setAttribute(CONTENT_ATTRIBUTE, "");
     this.tooltip.setAttribute("role", "tooltip");
-    this.tooltip.setAttribute("aria-hidden", "true");
+
+    if (this.options.semantics === "visual-only") {
+      this.tooltip.setAttribute("aria-hidden", "true");
+    } else {
+      this.tooltip.removeAttribute("aria-hidden");
+
+      const { id, generated } =
+        ensureSharedTooltipId(this.tooltip);
+
+      this.descriptionTooltipId = id;
+      this.generatedDescriptionTooltipId = generated;
+    }
+
     this.tooltip.setAttribute(
       "data-placement",
       this.options.placement
     );
     this.tooltip.hidden = true;
+
+    if (this.nativeHintElement) {
+      this.container.setAttribute(
+        HINT_ROOT_ATTRIBUTE,
+        ""
+      );
+      this.nativeHintElement.setAttribute(
+        "popover",
+        "hint"
+      );
+      this.nativeHintElement.addEventListener(
+        "beforetoggle",
+        this.handleNativeBeforeToggle
+      );
+      this.nativeHintElement.addEventListener(
+        "toggle",
+        this.handleNativeToggle
+      );
+    }
 
     if (this.anchorSupported) {
       this.tooltip.style.setProperty(
@@ -1046,6 +1084,11 @@ implements SharedTooltipController {
       this.tooltip.textContent = content;
       this.updatePosition();
 
+      if (!this.retargetNativeHint(trigger)) {
+        this.close("platform");
+        return false;
+      }
+
       this.dispatch(
         sharedTooltipEvents.retarget,
         {
@@ -1086,6 +1129,11 @@ implements SharedTooltipController {
 
     this.updatePosition();
 
+    if (!this.showNativeHint(trigger)) {
+      this.close("platform");
+      return false;
+    }
+
     this.dispatch(sharedTooltipEvents.open, {
       trigger,
       reason
@@ -1097,8 +1145,10 @@ implements SharedTooltipController {
   private assignActiveTrigger(
     trigger: HTMLElement
   ): void {
+    this.releaseActiveDescription();
     this.releaseActiveAnchor();
     this.currentTrigger = trigger;
+    this.assignActiveDescription(trigger);
 
     if (!this.anchorSupported) {
       return;
@@ -1124,6 +1174,52 @@ implements SharedTooltipController {
     };
   }
 
+  private assignActiveDescription(
+    trigger: HTMLElement
+  ): void {
+    if (
+      this.options.semantics !== "describedby" ||
+      !this.descriptionTooltipId
+    ) {
+      return;
+    }
+
+    const describedBy =
+      trigger.getAttribute("aria-describedby");
+
+    const tokens = uniqueTokens([
+      ...tokenize(describedBy),
+      this.descriptionTooltipId
+    ]);
+
+    trigger.setAttribute(
+      "aria-describedby",
+      tokens.join(" ")
+    );
+
+    this.activeDescriptionState = {
+      trigger,
+      describedBy
+    };
+  }
+
+  private releaseActiveDescription(): void {
+    if (!this.activeDescriptionState) {
+      return;
+    }
+
+    const { trigger, describedBy } =
+      this.activeDescriptionState;
+
+    restoreAttribute(
+      trigger,
+      "aria-describedby",
+      describedBy
+    );
+
+    this.activeDescriptionState = null;
+  }
+
   private releaseActiveAnchor(): void {
     if (!this.activeAnchorState) {
       return;
@@ -1136,6 +1232,101 @@ implements SharedTooltipController {
     );
 
     this.activeAnchorState = null;
+  }
+
+  private showNativeHint(
+    trigger: HTMLElement
+  ): boolean {
+    const tooltip = this.nativeHintElement;
+
+    if (!tooltip) {
+      return true;
+    }
+
+    if (isPopoverOpen(tooltip)) {
+      return true;
+    }
+
+    try {
+      tooltip.showPopover({
+        source: trigger
+      });
+
+      return isPopoverOpen(tooltip);
+    } catch {
+      return false;
+    }
+  }
+
+  private retargetNativeHint(
+    trigger: HTMLElement
+  ): boolean {
+    const tooltip = this.nativeHintElement;
+
+    if (!tooltip) {
+      return true;
+    }
+
+    if (!isPopoverOpen(tooltip)) {
+      return this.showNativeHint(trigger);
+    }
+
+    try {
+      // A synchronous hide/show updates the popover source before the
+      // browser gets a rendering opportunity.
+      tooltip.hidePopover();
+      tooltip.showPopover({
+        source: trigger
+      });
+
+      return isPopoverOpen(tooltip);
+    } catch {
+      return false;
+    }
+  }
+
+  private hideNativeHint(): void {
+    const tooltip = this.nativeHintElement;
+
+    if (!tooltip || !isPopoverOpen(tooltip)) {
+      return;
+    }
+
+    try {
+      tooltip.hidePopover();
+    } catch {
+      // Core state still closes and destroy restores authored state.
+    }
+  }
+
+  private handleNativeBeforeToggle(
+    event: Event
+  ): void {
+    const toggleEvent =
+      event as PopoverToggleEvent;
+
+    if (
+      toggleEvent.newState === "open" &&
+      !this.openState
+    ) {
+      event.preventDefault();
+    }
+  }
+
+  private handleNativeToggle(
+    event: Event
+  ): void {
+    const toggleEvent =
+      event as PopoverToggleEvent;
+
+    if (
+      toggleEvent.newState === "closed" &&
+      this.openState &&
+      this.nativeHintElement &&
+      !isPopoverOpen(this.nativeHintElement)
+    ) {
+      this.close("platform");
+    }
   }
 
   private updatePosition(): void {
