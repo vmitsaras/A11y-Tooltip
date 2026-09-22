@@ -46,7 +46,8 @@ export type SharedTooltipCloseReason =
   | "content-empty"
   | "destroy"
   | "escape"
-  | "leave";
+  | "leave"
+  | "trigger-removed";
 
 export type SharedTooltipReason =
   | SharedTooltipOpenReason
@@ -315,12 +316,6 @@ implements SharedTooltipController {
       );
     }
 
-    const existing = INSTANCES.get(container);
-
-    if (existing) {
-      return existing;
-    }
-
     this.options = normalizeOptions(options);
 
     try {
@@ -439,7 +434,8 @@ implements SharedTooltipController {
     const cancelable =
       reason !== "content-empty" &&
       reason !== "escape" &&
-      reason !== "destroy";
+      reason !== "destroy" &&
+      reason !== "trigger-removed";
 
     const allowed = this.dispatch(
       sharedTooltipEvents.beforeClose,
@@ -495,7 +491,7 @@ implements SharedTooltipController {
         this.currentTrigger
       )
     ) {
-      return this.close("leave");
+      return this.close("trigger-removed");
     }
 
     const content = this.resolveContent(
@@ -802,6 +798,18 @@ implements SharedTooltipController {
       | "leave"
   ): void {
     this.maybeResetDismissedTrigger();
+
+    if (
+      this.openState &&
+      this.currentTrigger &&
+      !containsNode(
+        this.container,
+        this.currentTrigger
+      )
+    ) {
+      this.close("trigger-removed");
+      return;
+    }
 
     const desired = this.desiredTrigger();
 
@@ -1426,6 +1434,18 @@ export function createSharedTooltip(
   container: HTMLElement,
   options: SharedTooltipOptions
 ): SharedTooltipController {
+  if (!(container instanceof HTMLElement)) {
+    throw new TypeError(
+      "createSharedTooltip() requires an HTMLElement container."
+    );
+  }
+
+  const existing = INSTANCES.get(container);
+
+  if (existing) {
+    return existing;
+  }
+
   return new SharedTooltipControllerImpl(
     container,
     options
