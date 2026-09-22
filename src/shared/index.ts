@@ -19,8 +19,8 @@ const ROOT_SELECTOR = "[data-a11y-shared-tooltip]";
 const CONTENT_ATTRIBUTE = "data-a11y-shared-tooltip-content";
 
 const CLASSES = Object.freeze({
-  initialized: "is-initialized",
-  open: "is-open"
+  initialized: "is-shared-tooltip-initialized",
+  open: "is-shared-tooltip-open"
 });
 
 export const sharedTooltipEvents = Object.freeze({
