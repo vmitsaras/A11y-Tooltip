@@ -123,7 +123,7 @@ interface AuthoredTooltipSnapshot {
   role: string | null;
   ariaHidden: string | null;
   placement: string | null;
-  hidden: boolean;
+  hidden: HTMLElement["hidden"];
   style: string | null;
 }
 
