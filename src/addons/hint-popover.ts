@@ -46,6 +46,34 @@ function supportsHintPopover(
   return probe.popover === "hint";
 }
 
+function supportsAnchorPositioning(
+  element: HTMLElement
+): boolean {
+  const css = element.ownerDocument.defaultView?.CSS;
+
+  if (!css || typeof css.supports !== "function") {
+    return false;
+  }
+
+  return (
+    css.supports(
+      "anchor-name: --a11y-tooltip-anchor"
+    ) &&
+    css.supports(
+      "position-anchor: --a11y-tooltip-anchor"
+    ) &&
+    css.supports(
+      "position-area: top span-all"
+    ) &&
+    css.supports(
+      "align-self: anchor-center"
+    ) &&
+    css.supports(
+      "position-try-fallbacks: flip-block"
+    )
+  );
+}
+
 function isPopoverOpen(element: HTMLElement): boolean {
   try {
     return element.matches(":popover-open");
@@ -83,7 +111,10 @@ export function createHintPopoverAddon(): TooltipAddon {
     setup(instance: TooltipInstance) {
       const { root, tooltip, trigger } = instance;
 
-      if (!supportsHintPopover(tooltip)) {
+      if (
+        !supportsHintPopover(tooltip) ||
+        !supportsAnchorPositioning(tooltip)
+      ) {
         return;
       }
 
