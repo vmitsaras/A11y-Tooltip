@@ -103,6 +103,12 @@ if (root instanceof HTMLElement) {
       type: "(options?: AnchorPositioningAddonOptions) => TooltipAddon",
       description:
         "From a11y-tooltip/addons: progressively enables native CSS Anchor Positioning with placement-aware position-try fallbacks."
+    },
+    {
+      name: "createSelectorAdapter(options)",
+      type: "(options: SelectorAdapterOptions) => TooltipAdapter",
+      description:
+        "From a11y-tooltip/adapters: maps exactly one custom trigger and tooltip selector into the core tooltip contract."
     }
   ],
   examples: [
@@ -122,6 +128,12 @@ if (root instanceof HTMLElement) {
       description:
         "Uses native CSS Anchor Positioning and position-try fallbacks while preserving the default CSS fallback.",
       path: "examples/anchor-positioning"
+    },
+    {
+      name: "Selector adapter",
+      description:
+        "Maps legacy BEM or design-system selectors into the tooltip core without changing its accessibility behavior.",
+      path: "examples/selector-adapter"
     }
   ]
 } satisfies PluginDocs;
