@@ -32,11 +32,11 @@
 - [x] ADDON-210 — Overflow-only tooltip via `createOverflowOnlyAddon()`
 - [x] ADDON-240 — CSS Anchor Positioning via `createAnchorPositioningAddon()`
 - [x] ADAPTER-220 — Selector adapter factory via `createSelectorAdapter()`
+- [x] DIAG-230 — Read-only integration diagnostics via `scanTooltipRoot()` and `scanTooltips()`
 
 Only after v0.1 runtime behavior is stable:
 
 - add focused browser-level integration tests if unit DOM coverage proves insufficient;
-- consider a read-only diagnostics helper for common integration mistakes;
 - record manual assistive-technology evidence in `ACCESSIBILITY.md`.
 
 ## Future candidates
