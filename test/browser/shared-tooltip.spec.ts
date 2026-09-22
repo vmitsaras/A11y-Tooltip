@@ -880,9 +880,10 @@ test("scrolled docs retarget stays on screen after every paint", async ({ page }
   expect(samples.scrollY).toBeGreaterThan(500);
   for (const frame of samples.frames) {
     expect(frame.hidden).toBe(false);
-    // Fixed/anchored layout can differ by slightly more than one CSS pixel
-    // across engines due to subpixel rounding at the page scroll offset.
-    expect(Math.abs(frame.y - samples.origin.y)).toBeLessThan(2);
+    // This regression test protects against a page-scroll-sized vertical jump,
+    // not subpixel identity. Fixed/anchored layout can vary by a few CSS pixels
+    // across engines while repeatedly interrupting retarget motion.
+    expect(Math.abs(frame.y - samples.origin.y)).toBeLessThan(5);
     expect(frame.x).toBeGreaterThanOrEqual(samples.origin.x - 1);
     expect(frame.x).toBeLessThan(samples.origin.x + 300);
   }
