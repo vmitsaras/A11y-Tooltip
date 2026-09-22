@@ -20,6 +20,10 @@ These behaviors align with the WAI-ARIA tooltip pattern and WCAG 2.2 Success Cri
 
 Vitest covers semantic initialization, authored `aria-describedby` preservation, focus opening, hover persistence and delay, `Escape` dismissal, bubbling lifecycle events, cancelable before-events, safe option parsing, duplicate initialization, invalid trigger/content rejection, teardown restoration, multi-root initialization, and addon cleanup.
 
+## Automated verification record
+
+- 2026-09-22 — GitHub Actions CI on Node 24 with npm 11 passed dependency installation, `npm run typecheck`, `npm test`, `npm run build`, and `npm run pack:check` for commit `aa9584276a001e2804a1e81952b04421cde7868d`.
+
 ## Manual release checks
 
 | Check | Environment | Status |

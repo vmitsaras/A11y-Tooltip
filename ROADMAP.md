@@ -21,7 +21,7 @@
 - [x] Package metadata, docs metadata, Changesets
 - [x] Basic example
 - [x] `docs/` GitHub Pages demo
-- [ ] CI verification on GitHub
+- [x] CI verification on GitHub
 - [ ] Manual VoiceOver/Safari check
 - [ ] Manual NVDA/Firefox check
 - [ ] Manual zoom/large-pointer hover check
