@@ -113,6 +113,7 @@ describe("createSharedTooltip", () => {
     expect(controller.tooltip.getAttribute("aria-hidden")).toBe("true");
     expect(controller.renderMode).toBe("anchored");
     expect(controller.semantics).toBe("visual-only");
+    expect(controller.motion).toBe("none");
     expect(controller.usesNativeHint).toBe(false);
     expect(first.hasAttribute("aria-describedby")).toBe(false);
     expect(second.hasAttribute("aria-describedby")).toBe(false);
@@ -210,6 +211,122 @@ describe("createSharedTooltip", () => {
     expect(controller.activeTrigger).toBe(second);
     expect(controller.tooltip.textContent).toBe("Italic");
     expect(events).toEqual(["retarget"]);
+  });
+
+  it("uses WAAPI FLIP for opt-in retarget motion", () => {
+    const { container, first, second } = renderToolbar();
+
+    const controller = createSharedTooltip(container, {
+      triggers: "[data-tooltip-text]",
+      getContent(trigger) {
+        return trigger.dataset.tooltipText;
+      },
+      motion: "move",
+      motionDuration: 240,
+      motionEasing: "linear",
+      showDelay: 0,
+      hideDelay: 0
+    });
+
+    const rects = [
+      new DOMRect(20, 20, 80, 40),
+      new DOMRect(140, 20, 100, 40)
+    ];
+
+    vi.spyOn(
+      controller.tooltip,
+      "getBoundingClientRect"
+    )
+      .mockReturnValueOnce(rects[0])
+      .mockReturnValueOnce(rects[1]);
+
+    const cancel = vi.fn();
+    const animation = new EventTarget() as EventTarget & {
+      cancel: ReturnType<typeof vi.fn>;
+    };
+
+    animation.cancel = cancel;
+
+    const animate = vi.fn(
+      () => animation as unknown as Animation
+    );
+
+    Object.defineProperty(
+      controller.tooltip,
+      "animate",
+      {
+        configurable: true,
+        value: animate
+      }
+    );
+
+    focusIn(first);
+    focusOut(first, second);
+
+    expect(controller.motion).toBe("move");
+    expect(animate).toHaveBeenCalledTimes(1);
+
+    expect(animate).toHaveBeenCalledWith(
+      [
+        {
+          translate: "-130px 0px"
+        },
+        {
+          translate: "0px 0px"
+        }
+      ],
+      {
+        duration: 240,
+        easing: "linear",
+        fill: "both"
+      }
+    );
+
+    expect(controller.activeTrigger).toBe(second);
+    expect(controller.tooltip.textContent).toBe("Italic");
+  });
+
+  it("keeps retarget state correct if WAAPI animation creation fails", () => {
+    const { container, first, second } = renderToolbar();
+
+    const controller = createSharedTooltip(container, {
+      triggers: "[data-tooltip-text]",
+      getContent(trigger) {
+        return trigger.dataset.tooltipText;
+      },
+      motion: "move",
+      showDelay: 0,
+      hideDelay: 0
+    });
+
+    vi.spyOn(
+      controller.tooltip,
+      "getBoundingClientRect"
+    )
+      .mockReturnValueOnce(
+        new DOMRect(20, 20, 80, 40)
+      )
+      .mockReturnValueOnce(
+        new DOMRect(140, 20, 80, 40)
+      );
+
+    Object.defineProperty(
+      controller.tooltip,
+      "animate",
+      {
+        configurable: true,
+        value() {
+          throw new Error("WAAPI unavailable");
+        }
+      }
+    );
+
+    focusIn(first);
+    focusOut(first, second);
+
+    expect(controller.isOpen).toBe(true);
+    expect(controller.activeTrigger).toBe(second);
+    expect(controller.tooltip.textContent).toBe("Italic");
   });
 
   it("gives keyboard focus priority over pointer hover", () => {
