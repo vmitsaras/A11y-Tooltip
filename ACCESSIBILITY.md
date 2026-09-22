@@ -40,6 +40,24 @@ allowed to open.
 This means screen-reader description semantics remain stable even when the
 visual tooltip is suppressed because the visible label already fits.
 
+## CSS Anchor Positioning addon
+
+`createAnchorPositioningAddon()` changes visual positioning only.
+
+- It does not change keyboard commands or focus behavior.
+- It does not alter the tooltip role, accessible description relationship, or
+  screen-reader announcement model.
+- It does not move the tooltip elsewhere in the DOM.
+- It installs no observer, polling loop, storage, analytics, or network work.
+- Each instance gets a unique generated CSS anchor name; authored inline anchor
+  styles are restored during teardown.
+- Unsupported browsers retain the existing absolute-position fallback because
+  the anchor layout rules are guarded by `@supports`.
+
+The addon can improve tooltip visibility near viewport/containing-block edges,
+including at increased zoom, but it does not make the tooltip a top-layer
+element and therefore does not bypass every ancestor clipping context.
+
 ## Manual release checks
 
 | Check | Environment | Status |
