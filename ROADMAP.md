@@ -55,6 +55,20 @@
   - [x] 300J — read-only shared integration diagnostics
   - [x] 300K — dense toolbar + dynamic-trigger example
   - [x] 300L — package/docs/accessibility integration
+- [x] CTRL-320 — Shared native `popover="hint"` renderer (experimental)
+  - [x] 320A — shared native hint utilities
+  - [x] 320B — exact feature detection + anchored fallback
+  - [x] 320C — core/native open-close synchronization
+  - [x] 320D — synchronous source retargeting
+  - [x] 320E — auto-popover coexistence + direct-open protection
+  - [x] 320F — Chromium / Firefox / WebKit verification
+- [x] CTRL-340 — Dynamic shared `aria-describedby` mode (experimental)
+  - [x] 340A — active-trigger-only relationship ownership
+  - [x] 340B — authored token preservation/restoration
+  - [x] 340C — generated unique shared tooltip IDs
+  - [x] 340D — browser accessible-description verification
+  - [x] 340E — diagnostics for stale/duplicate relationships
+  - [ ] 340F — manual NVDA / JAWS / VoiceOver / TalkBack verification
 
 Only after v0.1 runtime behavior is stable:
 
@@ -65,8 +79,6 @@ Only after v0.1 runtime behavior is stable:
 
 These are deliberately not part of the core MVP:
 
-- CTRL-320 — optional shared native hint renderer after retarget/source behavior is proven;
-- CTRL-340 — dynamic shared `aria-describedby` mode only after manual AT evidence supports it;
 
 - richer viewport-placement strategies only if the native anchor-positioning addon proves insufficient;
 - framework-specific wrappers maintained outside the core runtime;
