@@ -26,6 +26,9 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit --no-fund
 
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium firefox webkit
+
       - name: Typecheck
         run: npm run typecheck
 
@@ -34,6 +37,9 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Browser tests
+        run: npm run test:browser
 
       - name: Package dry run
         run: npm run pack:check
