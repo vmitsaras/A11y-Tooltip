@@ -5,55 +5,14 @@ import {
   type TooltipLifecycleDetail
 } from "../index.js";
 import { supportsAnchorPositioning } from "../internal/anchor-positioning.js";
+import {
+  isPopoverOpen,
+  supportsHintPopover,
+  type PopoverToggleEvent
+} from "../internal/hint-popover.js";
 import { setupAnchorPositioning } from "./anchor-positioning.js";
 
 const ROOT_ATTRIBUTE = "data-a11y-tooltip-hint-popover";
-
-interface HintPopoverElement extends HTMLElement {
-  popover: string | null;
-  showPopover(options?: { source?: HTMLElement }): void;
-  hidePopover(): void;
-}
-
-interface PopoverToggleEvent extends Event {
-  readonly newState: "open" | "closed";
-}
-
-function supportsHintPopover(
-  element: HTMLElement
-): element is HintPopoverElement {
-  const view = element.ownerDocument.defaultView;
-
-  if (!view) {
-    return false;
-  }
-
-  const prototype = view.HTMLElement.prototype as HintPopoverElement;
-
-  if (
-    !Object.hasOwn(prototype, "popover") ||
-    typeof prototype.showPopover !== "function" ||
-    typeof prototype.hidePopover !== "function"
-  ) {
-    return false;
-  }
-
-  const probe = element.ownerDocument.createElement(
-    "div"
-  ) as HintPopoverElement;
-
-  probe.setAttribute("popover", "hint");
-
-  return probe.popover === "hint";
-}
-
-function isPopoverOpen(element: HTMLElement): boolean {
-  try {
-    return element.matches(":popover-open");
-  } catch {
-    return false;
-  }
-}
 
 function isOwnLifecycleEvent(
   event: Event,
