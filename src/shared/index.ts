@@ -470,6 +470,7 @@ implements SharedTooltipController {
   private readonly anchorSupported: boolean;
   private readonly anchorName: string;
   private readonly nativeHintElement: HintPopoverElement | null;
+  private readonly flipMotion: WaapiFlipMotionController | null;
 
   private descriptionTooltipId: string | null = null;
 
@@ -552,6 +553,14 @@ implements SharedTooltipController {
         ? this.tooltip
         : null;
 
+    this.flipMotion =
+      this.options.motion === "move"
+        ? createWaapiFlipMotionController({
+            duration: this.options.motionDuration,
+            easing: this.options.motionEasing
+          })
+        : null;
+
     this.handleFocusIn = this.handleFocusIn.bind(this);
     this.handleFocusOut = this.handleFocusOut.bind(this);
     this.handlePointerOver =
@@ -595,6 +604,10 @@ implements SharedTooltipController {
 
   get semantics(): SharedTooltipSemantics {
     return this.options.semantics;
+  }
+
+  get motion(): SharedTooltipMotion {
+    return this.options.motion;
   }
 
   get usesNativeHint(): boolean {
@@ -669,6 +682,7 @@ implements SharedTooltipController {
     }
 
     this.openState = false;
+    this.flipMotion?.cancel();
     this.hideNativeHint();
     this.tooltip.hidden = true;
     this.container.classList.remove(CLASSES.open);
