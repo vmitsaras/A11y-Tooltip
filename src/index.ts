@@ -245,7 +245,7 @@ export class A11yTooltip implements TooltipInstance {
   private hideTimer: number | null = null;
   private addonCleanups: Array<() => void> = [];
 
-  private originalHidden = true;
+  private originalHidden: HTMLElement["hidden"] = false;
   private originalRole: string | null = null;
   private originalPlacement: string | null = null;
   private originalDescribedBy: string | null = null;
