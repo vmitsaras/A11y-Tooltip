@@ -243,6 +243,18 @@ function normalizeOptions(
     ? (options.placement as TooltipPlacement)
     : DEFAULTS.placement;
 
+  const renderMode = SHARED_TOOLTIP_RENDER_MODES.includes(
+    options.renderMode as SharedTooltipRenderMode
+  )
+    ? (options.renderMode as SharedTooltipRenderMode)
+    : DEFAULTS.renderMode;
+
+  const semantics = SHARED_TOOLTIP_SEMANTICS.includes(
+    options.semantics as SharedTooltipSemantics
+  )
+    ? (options.semantics as SharedTooltipSemantics)
+    : DEFAULTS.semantics;
+
   return Object.freeze({
     triggers,
     getContent: options.getContent,
@@ -259,7 +271,9 @@ function normalizeOptions(
     fallbacks: normalizeAnchorFallbacks(
       options.fallbacks,
       placement
-    )
+    ),
+    renderMode,
+    semantics
   });
 }
 
@@ -281,6 +295,38 @@ function containsNode(
   node: Node | null
 ): boolean {
   return Boolean(node && container.contains(node));
+}
+
+function tokenize(value: string | null): string[] {
+  return String(value ?? "")
+    .trim()
+    .split(/\s+/u)
+    .filter(Boolean);
+}
+
+function uniqueTokens(tokens: readonly string[]): string[] {
+  return Array.from(new Set(tokens));
+}
+
+function ensureSharedTooltipId(
+  tooltip: HTMLElement
+): { id: string; generated: boolean } {
+  const authored = tooltip.id.trim();
+
+  if (authored) {
+    return {
+      id: authored,
+      generated: false
+    };
+  }
+
+  generatedTooltipId += 1;
+  tooltip.id = `a11y-tooltip-shared-${generatedTooltipId}`;
+
+  return {
+    id: tooltip.id,
+    generated: true
+  };
 }
 
 function parseOffset(element: HTMLElement): number {
@@ -310,6 +356,8 @@ function snapshotAuthoredTooltip(
     role: tooltip.getAttribute("role"),
     ariaHidden: tooltip.getAttribute("aria-hidden"),
     placement: tooltip.getAttribute("data-placement"),
+    id: tooltip.getAttribute("id"),
+    popover: tooltip.getAttribute("popover"),
     hidden: tooltip.hidden,
     style: tooltip.getAttribute("style")
   };
