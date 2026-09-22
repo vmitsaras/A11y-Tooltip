@@ -163,6 +163,44 @@ describe("A11yTooltip", () => {
     expect(instance.isOpen).toBe(false);
   });
 
+  it("keeps ordinary closes cancelable", () => {
+    const root = renderTooltip();
+    const instance = createTooltip(root);
+
+    root.addEventListener("a11y-tooltip:before-close", (event) => {
+      event.preventDefault();
+    });
+
+    instance.open();
+
+    expect(instance.close("api")).toBe(false);
+    expect(instance.isOpen).toBe(true);
+  });
+
+  it("does not allow Escape or platform dismissal to be canceled", () => {
+    const root = renderTooltip();
+    const instance = createTooltip(root);
+
+    root.addEventListener("a11y-tooltip:before-close", (event) => {
+      event.preventDefault();
+    });
+
+    instance.open();
+
+    expect(instance.close("platform")).toBe(true);
+    expect(instance.isOpen).toBe(false);
+
+    instance.trigger.dispatchEvent(new FocusEvent("blur"));
+    root.dispatchEvent(new MouseEvent("mouseleave"));
+    instance.open();
+
+    document.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Escape" })
+    );
+
+    expect(instance.isOpen).toBe(false);
+  });
+
   it("applies safe dataset options and falls back from invalid values", () => {
     const root = renderTooltip({ placement: "sideways" });
     root.dataset.a11yTooltipShowDelay = "-10";
