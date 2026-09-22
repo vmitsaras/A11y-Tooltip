@@ -120,6 +120,35 @@ teardown. Automated tests still cannot prove assistive-technology speech
 output, so manual VoiceOver/NVDA/mobile checks remain required before treating
 the experimental bridge as fully verified.
 
+## Shared tooltip controller
+
+`createSharedTooltip()` is intentionally a **visual-only** controller for dense
+interfaces whose triggers already expose their purpose accessibly.
+
+- The controller never adds, removes, or moves `aria-describedby`.
+- The shared visual tooltip stays `aria-hidden="true"` so a mutable shared
+  content node does not become the semantic description of inactive controls.
+- Every trigger must therefore have an accessible name independent of the
+  shared tooltip, for example an `aria-label` or visible text.
+- Matching triggers that are not keyboard-focusable fail closed and do not open
+  the shared tooltip.
+- Keyboard focus has priority over pointer hover when both target different
+  triggers.
+- Escape dismisses the current trigger without moving focus and suppresses
+  reopening until that trigger's current activation ends.
+- Pointer users can move onto the shared tooltip without it disappearing.
+- Shared content is assigned with `textContent`; HTML or interactive content
+  is not injected by the controller.
+- New matching triggers work through event delegation without a
+  `MutationObserver`.
+- Essential instructions, errors, validation requirements, and destructive
+  consequences must remain in persistent accessible content rather than this
+  shared visual hint.
+
+The shared controller has its own lifecycle namespace and does not impersonate a
+normal `TooltipInstance`. Dynamic shared `aria-describedby` ownership is
+deferred pending manual NVDA, JAWS, VoiceOver, and TalkBack verification.
+
 ## Manual release checks
 
 | Check | Environment | Status |
