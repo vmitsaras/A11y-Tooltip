@@ -122,6 +122,43 @@ the experimental bridge as fully verified.
 
 ## Shared tooltip controller
 
+### Experimental shared native hint rendering
+
+With `renderMode: "hint-popover"`, the shared controller uses native
+`popover="hint"` only when exact hint support and the same CSS Anchor
+Positioning features required by the package are present.
+
+- Unsupported browsers remain on anchored rendering.
+- Native platform closes synchronize to the controller as `"platform"` and
+  suppress reopening for the current trigger activation.
+- Direct native opening while controller state is closed is canceled.
+- Retargeting uses a synchronous hide/show cycle with the new trigger as the
+  popover `source`; browser tests verify that the final state remains open.
+- The source relationship does not create an implicit ARIA description, so
+  semantic ownership remains controlled by the separate semantics option.
+- The authored `popover` attribute and controller integration marker are
+  restored on destroy.
+
+### Experimental shared aria-describedby ownership
+
+With `semantics: "describedby"`, the controller temporarily owns the
+description relationship for exactly one active trigger.
+
+- Existing `aria-describedby` tokens are preserved and restored exactly.
+- The shared tooltip gets a unique ID when necessary.
+- Only the active trigger receives that ID.
+- Retargeting restores the previous trigger before assigning the next one.
+- Close, Escape, platform dismissal, trigger removal, and destroy all restore
+  the prior trigger state.
+- `aria-hidden` is removed from the shared tooltip in this mode so the
+  referenced description is exposed to the accessibility tree.
+- Duplicate authored tooltip IDs are rejected.
+
+Playwright verifies the browser-computed accessible description in Chromium,
+Firefox, and WebKit. This is evidence about browser accessibility-tree mapping,
+not proof of assistive-technology speech timing or announcement behavior.
+Manual NVDA, JAWS, VoiceOver, and TalkBack verification remains pending.
+
 `createSharedTooltip()` is intentionally a **visual-only** controller for dense
 interfaces whose triggers already expose their purpose accessibly.
 
@@ -159,6 +196,10 @@ deferred pending manual NVDA, JAWS, VoiceOver, and TalkBack verification.
 | Pointer hover from trigger to tooltip at 200–400% zoom | Current desktop browser | Pending |
 | Forced-colors presentation | Windows forced colors | Pending |
 | Touch behavior for focusable triggers | VoiceOver iOS / TalkBack Android | Pending |
+| Dynamic shared description on focus/retarget | NVDA + Firefox/Chrome | Pending |
+| Dynamic shared description on focus/retarget | JAWS + Chrome | Pending |
+| Dynamic shared description on focus/retarget | VoiceOver + Safari | Pending |
+| Dynamic shared description on touch focus | VoiceOver iOS / TalkBack Android | Pending |
 
 ## Anchor positioning regression checks
 
