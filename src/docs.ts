@@ -91,6 +91,12 @@ if (root instanceof HTMLElement) {
       type: "() => void",
       description:
         "Removes listeners, addon cleanup, generated state, and restores authored ARIA/visibility attributes."
+    },
+    {
+      name: "createOverflowOnlyAddon(options?)",
+      type: "(options?: OverflowOnlyAddonOptions) => TooltipAddon",
+      description:
+        "From a11y-tooltip/addons: cancels visual opening unless the configured target is actually clipped."
     }
   ],
   examples: [
@@ -98,6 +104,12 @@ if (root instanceof HTMLElement) {
       name: "Basic",
       description: "Focus, hover, Escape dismissal, placements, and lifecycle events.",
       path: "examples/basic"
+    },
+    {
+      name: "Overflow only",
+      description:
+        "Shows the floating tooltip only when the measured target is visually clipped.",
+      path: "examples/overflow-only"
     }
   ]
 } satisfies PluginDocs;

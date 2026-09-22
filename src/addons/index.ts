@@ -41,3 +41,15 @@ export function createSingleOpenAddon(): TooltipAddon {
     }
   });
 }
+
+export {
+  createOverflowOnlyAddon,
+  OVERFLOW_AXES
+} from "./overflow-only.js";
+
+export type {
+  OverflowAxis,
+  OverflowOnlyAddonOptions,
+  OverflowTarget,
+  OverflowTargetResolver
+} from "./overflow-only.js";

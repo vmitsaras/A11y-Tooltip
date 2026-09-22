@@ -24,6 +24,22 @@ Vitest covers semantic initialization, authored `aria-describedby` preservation,
 
 - 2026-09-22 — GitHub Actions CI on Node 24 with npm 11 passed dependency installation, `npm run typecheck`, `npm test`, `npm run build`, and `npm run pack:check` for commit `aa9584276a001e2804a1e81952b04421cde7868d`.
 
+## Overflow-only addon
+
+`createOverflowOnlyAddon()` affects only whether the **visual** tooltip is
+allowed to open.
+
+- It does not move focus or add keyboard commands.
+- It does not create a live region or new announcement.
+- It does not remove or rewrite `aria-describedby`.
+- It performs no background observation, polling, storage, or network work.
+- An unresolved explicit measurement target fails closed by canceling visual
+  opening.
+- The default logical inline-axis check follows the target's writing mode.
+
+This means screen-reader description semantics remain stable even when the
+visual tooltip is suppressed because the visible label already fits.
+
 ## Manual release checks
 
 | Check | Environment | Status |
