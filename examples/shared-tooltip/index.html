@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>A11y Tooltip — Shared controller example</title>
+  <link rel="stylesheet" href="../../dist/styles.css">
+  <style>
+    body {
+      margin: 0;
+      padding: 2rem 1.5rem 5rem;
+      font-family: system-ui, sans-serif;
+      color: #15181d;
+      background: #f7f8fa;
+    }
+
+    main {
+      max-width: 72rem;
+      margin-inline: auto;
+    }
+
+    .toolbar {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(3rem, 1fr));
+      gap: 0.5rem;
+      margin-block: 2rem;
+      padding: 1rem;
+      border: 1px solid #c7ccd4;
+      border-radius: 1rem;
+      background: white;
+    }
+
+    .toolbar__button {
+      min-block-size: 2.75rem;
+      border: 1px solid #8c95a3;
+      border-radius: 0.5rem;
+      background: white;
+      color: inherit;
+      font: inherit;
+      cursor: default;
+    }
+
+    .toolbar__button:focus-visible {
+      outline: 0.1875rem solid #2457d6;
+      outline-offset: 0.125rem;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      align-items: center;
+    }
+
+    .controls button {
+      min-block-size: 2.75rem;
+      padding-inline: 1rem;
+      border: 1px solid #8c95a3;
+      border-radius: 0.5rem;
+      background: white;
+      color: inherit;
+      font: inherit;
+    }
+
+    .status {
+      min-block-size: 1.5rem;
+      margin-block-start: 1rem;
+      font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Shared tooltip controller</h1>
+
+    <p>
+      This toolbar uses one visual-only tooltip for every control. Each button
+      already has its own accessible name; the shared tooltip is not used as an
+      accessible-name or description source.
+    </p>
+
+    <div class="controls">
+      <button type="button" data-add-trigger>
+        Add dynamic trigger
+      </button>
+
+      <button type="button" data-toggle-rtl>
+        Toggle RTL
+      </button>
+    </div>
+
+    <p class="status" data-status>
+      Waiting for interaction.
+    </p>
+
+    <div class="toolbar" data-shared-toolbar></div>
+  </main>
+
+  <script type="module">
+    import {
+      createSharedTooltip,
+      sharedTooltipEvents
+    } from "../../dist/shared/index.js";
+
+    const toolbar = document.querySelector("[data-shared-toolbar]");
+    const status = document.querySelector("[data-status]");
+    const requestedCount = Number(
+      new URLSearchParams(location.search).get("count") ?? 120
+    );
+    const count = Math.min(
+      Math.max(Number.isFinite(requestedCount) ? requestedCount : 120, 1),
+      500
+    );
+
+    if (!(toolbar instanceof HTMLElement)) {
+      throw new Error("Missing toolbar.");
+    }
+
+    function createButton(index) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "toolbar__button";
+      button.dataset.tooltipText = `Command ${index}`;
+      button.dataset.triggerIndex = String(index);
+      button.setAttribute("aria-label", `Command ${index}`);
+      button.textContent = String(index);
+      return button;
+    }
+
+    const fragment = document.createDocumentFragment();
+
+    for (let index = 1; index <= count; index += 1) {
+      fragment.append(createButton(index));
+    }
+
+    toolbar.append(fragment);
+
+    const controller = createSharedTooltip(toolbar, {
+      triggers: "[data-tooltip-text]",
+      getContent(trigger) {
+        return trigger.dataset.tooltipText ?? "";
+      },
+      placement: "bottom",
+      showDelay: 0,
+      hideDelay: 80
+    });
+
+    window.__sharedTooltip = controller;
+
+    toolbar.addEventListener(sharedTooltipEvents.open, writeStatus);
+    toolbar.addEventListener(sharedTooltipEvents.retarget, writeStatus);
+    toolbar.addEventListener(sharedTooltipEvents.close, writeStatus);
+
+    function writeStatus(event) {
+      if (!(status instanceof HTMLElement)) {
+        return;
+      }
+
+      const trigger = event.detail?.trigger;
+      const index = trigger?.dataset.triggerIndex ?? "none";
+      status.textContent = `${event.type} · active ${index}`;
+    }
+
+    document.querySelector("[data-add-trigger]")?.addEventListener(
+      "click",
+      () => {
+        const next = toolbar.querySelectorAll(
+          "[data-tooltip-text]"
+        ).length + 1;
+
+        toolbar.append(createButton(next));
+      }
+    );
+
+    document.querySelector("[data-toggle-rtl]")?.addEventListener(
+      "click",
+      () => {
+        toolbar.dir = toolbar.dir === "rtl" ? "ltr" : "rtl";
+      }
+    );
+  </script>
+</body>
+</html>

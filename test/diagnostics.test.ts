@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { createTooltip } from "../src/index.js";
 import { createSelectorAdapter } from "../src/adapters/index.js";
 import {
+  scanSharedTooltip,
   scanTooltipRoot,
   scanTooltips
 } from "../src/diagnostics/index.js";
@@ -313,6 +314,57 @@ describe("tooltip diagnostics", () => {
     expect(
       scanTooltipRoot(root).map((finding) => finding.code)
     ).toContain("nested-tooltip-root");
+  });
+
+  it("reports shared-tooltip integration mistakes without mutation", () => {
+    document.body.innerHTML = `
+      <div class="toolbar">
+        <button
+          aria-label="Bold"
+          title="Bold"
+          data-tooltip-text="Bold"
+        >
+          B
+        </button>
+        <span data-tooltip-text=""></span>
+      </div>
+    `;
+
+    const container = document.querySelector(".toolbar");
+
+    if (!(container instanceof HTMLElement)) {
+      throw new Error("Missing shared container.");
+    }
+
+    const before = container.outerHTML;
+
+    const codes = scanSharedTooltip(container, {
+      triggers: "[data-tooltip-text]",
+      getContent(trigger) {
+        return trigger.dataset.tooltipText;
+      }
+    }).map((finding) => finding.code);
+
+    expect(codes).toContain("native-title-conflict");
+    expect(codes).toContain("trigger-not-focusable");
+    expect(codes).toContain("trigger-no-obvious-name");
+    expect(codes).toContain("shared-content-empty");
+    expect(container.outerHTML).toBe(before);
+  });
+
+  it("reports invalid shared-tooltip selectors as findings", () => {
+    const container = document.createElement("div");
+
+    const findings = scanSharedTooltip(container, {
+      triggers: "[",
+      getContent() {
+        return "Help";
+      }
+    });
+
+    expect(findings.map((finding) => finding.code)).toContain(
+      "shared-invalid-trigger-selector"
+    );
   });
 
   it("rejects invalid scanner configuration", () => {

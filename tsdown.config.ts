@@ -6,6 +6,7 @@ export default defineConfig({
     "addons/index": "./src/addons/index.ts",
     "adapters/index": "./src/adapters/index.ts",
     "diagnostics/index": "./src/diagnostics/index.ts",
+    "shared/index": "./src/shared/index.ts",
     docs: "./src/docs.ts"
   },
   format: ["esm"],
