@@ -352,6 +352,55 @@ describe("tooltip diagnostics", () => {
     expect(container.outerHTML).toBe(before);
   });
 
+  it("reports experimental shared modes and stale describedby ownership", () => {
+    document.body.innerHTML = `
+      <div class="toolbar">
+        <button
+          aria-label="Bold"
+          data-tooltip-text="Bold"
+          aria-describedby="shared-tip"
+        >
+          B
+        </button>
+      </div>
+      <span id="shared-tip"></span>
+      <span id="shared-tip"></span>
+    `;
+
+    const container = document.querySelector(".toolbar");
+    const tooltip = document.querySelector("#shared-tip");
+
+    if (
+      !(container instanceof HTMLElement) ||
+      !(tooltip instanceof HTMLElement)
+    ) {
+      throw new Error("Missing shared diagnostics fixture.");
+    }
+
+    const codes = scanSharedTooltip(container, {
+      triggers: "[data-tooltip-text]",
+      getContent(trigger) {
+        return trigger.dataset.tooltipText;
+      },
+      tooltip,
+      renderMode: "hint-popover",
+      semantics: "describedby"
+    }).map((finding) => finding.code);
+
+    expect(codes).toContain(
+      "shared-hint-popover-experimental"
+    );
+    expect(codes).toContain(
+      "shared-describedby-experimental"
+    );
+    expect(codes).toContain(
+      "shared-describedby-preexisting-reference"
+    );
+    expect(codes).toContain(
+      "shared-tooltip-duplicate-id"
+    );
+  });
+
   it("reports invalid shared-tooltip selectors as findings", () => {
     const container = document.createElement("div");
 
