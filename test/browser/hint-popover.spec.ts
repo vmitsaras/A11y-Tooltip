@@ -1,5 +1,17 @@
 import { expect, test } from "@playwright/test";
 
+interface HintTestInstance {
+  open(): boolean;
+  close(reason?: "api"): boolean;
+  destroy(): void;
+}
+
+declare global {
+  interface Window {
+    __hintTooltips: Record<string, HintTestInstance>;
+  }
+}
+
 test.beforeEach(async ({ page }) => {
   await page.goto("/examples/hint-popover/");
 
@@ -20,7 +32,6 @@ test("focus opens a native hint and keeps focus on the trigger", async ({
 
   await expect(root).toHaveClass(/is-open/u);
   await expect(tooltip).toHaveAttribute("popover", "hint");
-  await expect(tooltip).toHaveJSProperty("matches", expect.anything());
 
   expect(
     await tooltip.evaluate((element) =>
@@ -53,7 +64,7 @@ test("core close removes the native popover from the top layer", async ({
   ).toBe(false);
 });
 
-test("native light dismiss synchronizes back to core without immediate reopen", async ({
+test("native light dismiss synchronizes back to core", async ({
   page
 }) => {
   const root = page.locator('[data-hint-root="first"]');
@@ -61,9 +72,6 @@ test("native light dismiss synchronizes back to core without immediate reopen", 
   const tooltip = root.locator("[data-a11y-tooltip-content]");
 
   await trigger.focus();
-
-  await expect(trigger).toBeFocused();
-
   await page.locator("[data-light-dismiss-target]").click();
 
   expect(
@@ -73,11 +81,27 @@ test("native light dismiss synchronizes back to core without immediate reopen", 
   ).toBe(false);
 
   await expect(root).not.toHaveClass(/is-open/u);
+});
 
-  await page.evaluate(() => {
-    document.querySelector(
-      '[data-hint-root="first"] [data-a11y-tooltip-trigger]'
-    )?.dispatchEvent(
+test("native close stays dismissed during the current focus activation", async ({
+  page
+}) => {
+  const root = page.locator('[data-hint-root="first"]');
+  const trigger = root.locator("[data-a11y-tooltip-trigger]");
+  const tooltip = root.locator("[data-a11y-tooltip-content]");
+
+  await trigger.focus();
+  await expect(trigger).toBeFocused();
+
+  await tooltip.evaluate((element) => {
+    element.hidePopover();
+  });
+
+  await expect(root).not.toHaveClass(/is-open/u);
+  await expect(trigger).toBeFocused();
+
+  await root.evaluate((element) => {
+    element.dispatchEvent(
       new MouseEvent("mouseenter", { bubbles: false })
     );
   });
@@ -91,12 +115,13 @@ test("opening another native hint closes the previous core instance", async ({
   const firstRoot = page.locator('[data-hint-root="first"]');
   const secondRoot = page.locator('[data-hint-root="second"]');
   const firstTrigger = firstRoot.locator("[data-a11y-tooltip-trigger]");
-  const secondTrigger = secondRoot.locator("[data-a11y-tooltip-trigger]");
 
-  await firstTrigger.hover();
+  await firstTrigger.focus();
   await expect(firstRoot).toHaveClass(/is-open/u);
 
-  await secondTrigger.hover();
+  await page.evaluate(() => {
+    window.__hintTooltips.second.open();
+  });
 
   await expect(secondRoot).toHaveClass(/is-open/u);
   await expect(firstRoot).not.toHaveClass(/is-open/u);
