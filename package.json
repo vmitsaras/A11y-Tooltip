@@ -52,7 +52,9 @@
     "prepack": "npm run build:dist",
     "changeset": "changeset",
     "version-packages": "changeset version",
-    "release": "npm run test && npm run typecheck && npm run build:dist && changeset publish"
+    "release": "npm run test && npm run typecheck && npm run build:dist && changeset publish",
+    "test:browser": "playwright test",
+    "test:all": "npm test && npm run test:browser"
   },
   "repository": {
     "type": "git",
@@ -78,6 +80,7 @@
     "happy-dom": "^20.11.2",
     "tsdown": "^0.22.14",
     "typescript": "^7.0.2",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.10",
+    "@playwright/test": "^1.63.0"
   }
 }

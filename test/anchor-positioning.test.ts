@@ -4,6 +4,9 @@ import {
   createAnchorPositioningAddon,
   type AnchorPositioningFallback
 } from "../src/addons/index.js";
+import {
+  setupAnchorPositioning
+} from "../src/addons/anchor-positioning.js";
 
 function renderTooltip(
   placement: "top" | "right" | "bottom" | "left" = "top"
@@ -238,6 +241,39 @@ describe("createAnchorPositioningAddon", () => {
     ).not.toBe(
       second.trigger.style.getPropertyValue("anchor-name")
     );
+  });
+
+  it("reference-counts repeated positioning setup", () => {
+    const root = renderTooltip();
+    const instance = createTooltip(root);
+    const trigger = instance.trigger;
+
+    const firstCleanup = setupAnchorPositioning(instance, {
+      fallbacks: ["flip-start"]
+    });
+
+    const generatedAnchor =
+      trigger.style.getPropertyValue("anchor-name");
+
+    const secondCleanup = setupAnchorPositioning(instance);
+
+    expect(
+      instance.tooltip.style.getPropertyValue(
+        "position-try-fallbacks"
+      )
+    ).toBe("flip-start");
+
+    firstCleanup();
+
+    expect(
+      trigger.style.getPropertyValue("anchor-name")
+    ).toBe(generatedAnchor);
+
+    secondCleanup();
+
+    expect(
+      trigger.style.getPropertyValue("anchor-name")
+    ).toBe("");
   });
 
   it("does not alter the tooltip accessibility relationship", () => {
