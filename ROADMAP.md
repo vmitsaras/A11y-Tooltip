@@ -31,6 +31,7 @@
 
 - [x] ADDON-210 — Overflow-only tooltip via `createOverflowOnlyAddon()`
 - [x] ADDON-240 — CSS Anchor Positioning via `createAnchorPositioningAddon()`
+- [x] ADAPTER-220 — Selector adapter factory via `createSelectorAdapter()`
 
 Only after v0.1 runtime behavior is stable:
 

@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>A11y Tooltip — Selector adapter example</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 4rem 1.5rem;
+      font-family: system-ui, sans-serif;
+      color: #15181d;
+      background: #f7f8fa;
+    }
+
+    main {
+      max-width: 48rem;
+      margin-inline: auto;
+    }
+
+    .field-help {
+      position: relative;
+      display: inline-flex;
+      margin-block-start: 3rem;
+    }
+
+    .field-help__trigger {
+      min-block-size: 2.75rem;
+      padding-inline: 1rem;
+      border: 1px solid #8c95a3;
+      border-radius: 0.5rem;
+      background: white;
+      color: inherit;
+      font: inherit;
+    }
+
+    .field-help__trigger:focus-visible {
+      outline: 0.1875rem solid #2457d6;
+      outline-offset: 0.1875rem;
+    }
+
+    .field-help.is-initialized .field-help__tooltip {
+      position: absolute;
+      z-index: 1000;
+      inset-block-end: calc(100% + 0.625rem);
+      inset-inline-start: 50%;
+      inline-size: min(18rem, calc(100vw - 2rem));
+      padding: 0.5rem 0.625rem;
+      translate: -50% 0;
+      border: 1px solid #303640;
+      border-radius: 0.5rem;
+      background: #15181d;
+      color: white;
+      line-height: 1.45;
+    }
+
+    .field-help.is-initialized .field-help__tooltip[hidden] {
+      display: none;
+    }
+
+    @media (forced-colors: active) {
+      .field-help.is-initialized .field-help__tooltip {
+        border-color: CanvasText;
+        background: Canvas;
+        color: CanvasText;
+      }
+
+      .field-help__trigger:focus-visible {
+        outline-color: Highlight;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Selector adapter factory</h1>
+
+    <p>
+      This example uses legacy BEM markup with no A11y Tooltip data hooks.
+      The adapter maps the existing trigger and description into the core
+      tooltip contract.
+    </p>
+
+    <span class="field-help">
+      <button class="field-help__trigger">
+        Shipping details
+      </button>
+      <span class="field-help__tooltip">
+        Free standard shipping on orders over €50.
+      </span>
+    </span>
+  </main>
+
+  <script type="module">
+    import { createTooltip } from "../../dist/index.js";
+    import {
+      createSelectorAdapter
+    } from "../../dist/adapters/index.js";
+
+    const root = document.querySelector(".field-help");
+
+    if (root instanceof HTMLElement) {
+      createTooltip(root, {
+        adapter: createSelectorAdapter({
+          name: "field-help",
+          trigger: ".field-help__trigger",
+          tooltip: ".field-help__tooltip"
+        })
+      });
+    }
+  </script>
+</body>
+</html>
