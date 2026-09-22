@@ -684,6 +684,17 @@ implements SharedTooltipController {
       this.handleTooltipPointerLeave
     );
 
+    if (this.nativeHintElement) {
+      this.nativeHintElement.removeEventListener(
+        "beforetoggle",
+        this.handleNativeBeforeToggle
+      );
+      this.nativeHintElement.removeEventListener(
+        "toggle",
+        this.handleNativeToggle
+      );
+    }
+
     this.stopFallbackListeners();
     this.releaseActiveAnchor();
 
@@ -698,6 +709,12 @@ implements SharedTooltipController {
         this.originalRootAttribute
       );
     }
+
+    restoreAttribute(
+      this.container,
+      HINT_ROOT_ATTRIBUTE,
+      this.originalHintRootAttribute
+    );
 
     if (!this.rootHadInitializedClass) {
       this.container.classList.remove(
@@ -743,6 +760,16 @@ implements SharedTooltipController {
       );
       restoreAttribute(
         this.tooltip,
+        "id",
+        snapshot.id
+      );
+      restoreAttribute(
+        this.tooltip,
+        "popover",
+        snapshot.popover
+      );
+      restoreAttribute(
+        this.tooltip,
         "style",
         snapshot.style
       );
@@ -754,6 +781,8 @@ implements SharedTooltipController {
     this.currentTrigger = null;
     this.dismissedTrigger = null;
     this.hoveringTooltip = false;
+    this.descriptionTooltipId = null;
+    this.generatedDescriptionTooltipId = false;
     this.destroyed = true;
 
     INSTANCES.delete(this.container);
