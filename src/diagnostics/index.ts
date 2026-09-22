@@ -35,8 +35,12 @@ export const TOOLTIP_DIAGNOSTIC_CODES = Object.freeze([
   "nested-tooltip-root",
   "nested-shared-tooltip-root",
   "shared-content-empty",
+  "shared-describedby-experimental",
+  "shared-describedby-preexisting-reference",
+  "shared-hint-popover-experimental",
   "shared-invalid-trigger-selector",
-  "shared-no-triggers"
+  "shared-no-triggers",
+  "shared-tooltip-duplicate-id"
 ] as const);
 
 export type TooltipDiagnosticCode =
@@ -541,6 +545,8 @@ export interface ScanSharedTooltipOptions {
   triggers: SharedTooltipOptions["triggers"];
   getContent: SharedTooltipOptions["getContent"];
   tooltip?: HTMLElement;
+  renderMode?: SharedTooltipOptions["renderMode"];
+  semantics?: SharedTooltipOptions["semantics"];
 }
 
 /**
@@ -559,6 +565,29 @@ export function scanSharedTooltip(
   }
 
   const findings: TooltipDiagnostic[] = [];
+
+  if (options.renderMode === "hint-popover") {
+    findings.push(
+      finding(
+        container,
+        "shared-hint-popover-experimental",
+        "info",
+        "Shared native hint rendering is experimental and requires real-browser verification in the consuming environment."
+      )
+    );
+  }
+
+  if (options.semantics === "describedby") {
+    findings.push(
+      finding(
+        container,
+        "shared-describedby-experimental",
+        "info",
+        "Dynamic shared aria-describedby ownership is experimental. Browser accessibility-tree checks do not replace manual assistive-technology verification."
+      )
+    );
+  }
+
   const selector =
     typeof options.triggers === "string"
       ? options.triggers.trim()
@@ -717,6 +746,49 @@ export function scanSharedTooltip(
         options.tooltip
       )
     );
+  }
+
+  if (
+    options.semantics === "describedby" &&
+    options.tooltip?.id
+  ) {
+    const id = options.tooltip.id;
+    const duplicates = Array.from(
+      options.tooltip.ownerDocument.querySelectorAll("[id]")
+    ).filter((element) => element.id === id);
+
+    if (duplicates.length > 1) {
+      findings.push(
+        finding(
+          container,
+          "shared-tooltip-duplicate-id",
+          "error",
+          `Shared describedby tooltip id "${id}" is duplicated in the document.`,
+          options.tooltip
+        )
+      );
+    }
+
+    for (const trigger of triggers) {
+      const tokens = (
+        trigger.getAttribute("aria-describedby") ?? ""
+      )
+        .trim()
+        .split(/\s+/u)
+        .filter(Boolean);
+
+      if (tokens.includes(id)) {
+        findings.push(
+          finding(
+            container,
+            "shared-describedby-preexisting-reference",
+            "warning",
+            "A trigger already references the shared tooltip id before activation. This defeats dynamic ownership and can expose stale shared content.",
+            trigger
+          )
+        );
+      }
+    }
   }
 
   return Object.freeze(findings);
