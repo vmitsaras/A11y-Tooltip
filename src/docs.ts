@@ -132,7 +132,7 @@ if (root instanceof HTMLElement) {
       name: "createSharedTooltip(container, options)",
       type: "(container: HTMLElement, options: SharedTooltipOptions) => SharedTooltipController",
       description:
-        "From a11y-tooltip/shared: coordinates one visual-only tooltip across many delegated, already-accessibly-named triggers."
+        "From a11y-tooltip/shared: coordinates one shared tooltip across many delegated triggers, with opt-in native hint rendering and experimental describedby ownership."
     },
     {
       name: "scanSharedTooltip(container, options)",
