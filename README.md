@@ -223,6 +223,45 @@ overlay architecture.
 
 The default adapter resolves `data-a11y-tooltip-trigger` and `data-a11y-tooltip-content`. Design systems can supply a custom `TooltipAdapter` to map different markup without changing the core runtime.
 
+## Selector adapter factory
+
+Use `createSelectorAdapter()` when an existing design system, CMS, or legacy
+component already has suitable markup but uses different selectors.
+
+```ts
+import { createTooltip } from "a11y-tooltip";
+import {
+  createSelectorAdapter
+} from "a11y-tooltip/adapters";
+
+const adapter = createSelectorAdapter({
+  name: "field-help",
+  trigger: ".field__help-trigger",
+  tooltip: ".field__help"
+});
+
+createTooltip(root, { adapter });
+```
+
+The factory is intentionally strict:
+
+- `name`, `trigger`, and `tooltip` must be non-empty strings;
+- selectors are scoped to the supplied tooltip root;
+- each selector must resolve to exactly one `HTMLElement`;
+- trigger and tooltip must resolve to different elements;
+- invalid selectors, missing matches, duplicates, or non-HTMLElement matches
+  resolve as `null`, allowing the core tooltip to surface its normal adapter
+  resolution error with the configured adapter name.
+
+The adapter maps markup only. It does not change the verified tooltip contract:
+the core still validates keyboard focusability and non-interactive content,
+adds `aria-describedby` and `role="tooltip"`, manages focus/hover/Escape,
+dispatches lifecycle events, and restores authored state on `destroy()`.
+
+This makes the plugin easier to adopt in legacy BEM components, CMS templates,
+third-party design systems, and custom-element light DOM without coupling the
+core runtime to any one markup convention.
+
 ## CSS
 
 The default stylesheet uses BEM classes for styling and `data-*` attributes for JavaScript hooks.
@@ -247,6 +286,7 @@ See [ACCESSIBILITY.md](./ACCESSIBILITY.md) for the verification matrix and known
 - `examples/basic/`
 - `examples/overflow-only/`
 - `examples/anchor-positioning/`
+- `examples/selector-adapter/`
 - GitHub Pages demo: `docs/` when Pages is configured to serve `/docs` from `main`.
 
 ## Docs metadata
