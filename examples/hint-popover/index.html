@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>A11y Tooltip — Native hint popover addon</title>
+  <link rel="stylesheet" href="../../dist/styles.css">
+  <style>
+    body {
+      margin: 0;
+      padding: 3rem 1.5rem;
+      font-family: system-ui, sans-serif;
+      color: #15181d;
+      background: #f7f8fa;
+    }
+
+    main {
+      max-width: 64rem;
+      margin-inline: auto;
+    }
+
+    .demo-stack {
+      display: grid;
+      gap: 2rem;
+      margin-block-start: 2rem;
+    }
+
+    .clip-box {
+      inline-size: 13rem;
+      block-size: 7rem;
+      overflow: hidden;
+      padding: 1rem;
+      border: 2px dashed #8c95a3;
+      border-radius: 0.75rem;
+      background: white;
+    }
+
+    .clip-box .a11y-tooltip {
+      margin-block-start: 3.5rem;
+    }
+
+    .hint-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      align-items: center;
+    }
+
+    .demo-button,
+    [popovertarget] {
+      min-block-size: 2.75rem;
+      padding-inline: 1rem;
+      border: 1px solid #8c95a3;
+      border-radius: 0.5rem;
+      background: white;
+      color: inherit;
+      font: inherit;
+    }
+
+    .auto-popover {
+      inline-size: min(24rem, calc(100vw - 2rem));
+      padding: 1rem;
+      border: 1px solid #8c95a3;
+      border-radius: 0.75rem;
+      background: white;
+      box-shadow: 0 1rem 3rem rgb(0 0 0 / 0.15);
+    }
+
+    .light-dismiss-target {
+      min-block-size: 5rem;
+      padding: 1rem;
+      border: 1px solid #d3d7de;
+      border-radius: 0.75rem;
+      background: #eef1f5;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Native hint popover bridge</h1>
+
+    <p>
+      In supporting browsers, tooltips enter the top layer with
+      <code>popover="hint"</code> while A11y Tooltip keeps ownership of
+      focus, hover, delay, ARIA, and lifecycle state.
+    </p>
+
+    <div class="demo-stack">
+      <section>
+        <h2>Clipping escape</h2>
+        <div class="clip-box" data-clip-box>
+          <span
+            class="a11y-tooltip"
+            data-a11y-tooltip
+            data-hint-root="clip"
+            data-a11y-tooltip-placement="bottom"
+          >
+            <button
+              class="demo-button a11y-tooltip__trigger"
+              data-a11y-tooltip-trigger
+            >
+              Clipped container
+            </button>
+            <span
+              class="a11y-tooltip__content"
+              data-a11y-tooltip-content
+            >
+              This description is rendered in the top layer.
+            </span>
+          </span>
+        </div>
+      </section>
+
+      <section>
+        <h2>Hint stack</h2>
+        <div class="hint-row">
+          <span
+            class="a11y-tooltip"
+            data-a11y-tooltip
+            data-hint-root="first"
+          >
+            <button
+              class="demo-button a11y-tooltip__trigger"
+              data-a11y-tooltip-trigger
+            >
+              First hint
+            </button>
+            <span
+              class="a11y-tooltip__content"
+              data-a11y-tooltip-content
+            >
+              First native hint.
+            </span>
+          </span>
+
+          <span
+            class="a11y-tooltip"
+            data-a11y-tooltip
+            data-hint-root="second"
+          >
+            <button
+              class="demo-button a11y-tooltip__trigger"
+              data-a11y-tooltip-trigger
+            >
+              Second hint
+            </button>
+            <span
+              class="a11y-tooltip__content"
+              data-a11y-tooltip-content
+            >
+              Second native hint.
+            </span>
+          </span>
+        </div>
+      </section>
+
+      <section>
+        <h2>Hint inside an auto popover</h2>
+        <button popovertarget="auto-panel">
+          Open auto popover
+        </button>
+
+        <div
+          class="auto-popover"
+          id="auto-panel"
+          popover="auto"
+        >
+          <p>
+            Opening the tooltip below must not close this auto popover.
+          </p>
+
+          <span
+            class="a11y-tooltip"
+            data-a11y-tooltip
+            data-hint-root="auto"
+            data-a11y-tooltip-placement="right"
+          >
+            <button
+              class="demo-button a11y-tooltip__trigger"
+              data-a11y-tooltip-trigger
+            >
+              Hint in auto
+            </button>
+            <span
+              class="a11y-tooltip__content"
+              data-a11y-tooltip-content
+            >
+              Hint popovers use a separate hint stack.
+            </span>
+          </span>
+        </div>
+      </section>
+
+      <div
+        class="light-dismiss-target"
+        data-light-dismiss-target
+      >
+        Non-focusable outside area for light-dismiss testing.
+      </div>
+    </div>
+  </main>
+
+  <script type="module">
+    import { createTooltip } from "../../dist/index.js";
+    import {
+      createHintPopoverAddon
+    } from "../../dist/addons/index.js";
+
+    const instances = {};
+
+    for (const root of document.querySelectorAll("[data-hint-root]")) {
+      if (!(root instanceof HTMLElement)) {
+        continue;
+      }
+
+      const key = root.dataset.hintRoot;
+
+      if (!key) {
+        continue;
+      }
+
+      instances[key] = createTooltip(root, {
+        showDelay: 0,
+        hideDelay: 0,
+        addons: [createHintPopoverAddon()]
+      });
+    }
+
+    window.__hintTooltips = instances;
+
+    const firstRoot = document.querySelector("[data-hint-root]");
+
+    document.documentElement.dataset.hintBridgeActive =
+      firstRoot instanceof HTMLElement &&
+      firstRoot.hasAttribute(
+        "data-a11y-tooltip-hint-popover"
+      )
+        ? "true"
+        : "false";
+  </script>
+</body>
+</html>
