@@ -5,6 +5,7 @@ export default defineConfig({
     index: "./src/index.ts",
     "addons/index": "./src/addons/index.ts",
     "adapters/index": "./src/adapters/index.ts",
+    "diagnostics/index": "./src/diagnostics/index.ts",
     docs: "./src/docs.ts"
   },
   format: ["esm"],
