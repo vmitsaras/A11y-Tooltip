@@ -1,5 +1,5 @@
 import { tooltipEvents } from "../index.js";
-import { a as restoreInlineStyle, c as supportsAnchorPositioning, i as normalizeAnchorFallbacks, n as createAnchorName, o as serializeAnchorFallbacks, r as mergeAnchorName, s as snapshotInlineStyle, t as ANCHOR_POSITIONING_FALLBACKS } from "../anchor-positioning-DKoOS3IM.js";
+import { a as mergeAnchorName, c as serializeAnchorFallbacks, i as createAnchorName, l as snapshotInlineStyle, n as supportsHintPopover, o as normalizeAnchorFallbacks, r as ANCHOR_POSITIONING_FALLBACKS, s as restoreInlineStyle, t as isPopoverOpen, u as supportsAnchorPositioning } from "../hint-popover-CGYFj02V.js";
 //#region src/addons/overflow-only.ts
 const OVERFLOW_AXES = Object.freeze([
 	"inline",
@@ -153,22 +153,6 @@ function createAnchorPositioningAddon(options = {}) {
 //#endregion
 //#region src/addons/hint-popover.ts
 const ROOT_ATTRIBUTE = "data-a11y-tooltip-hint-popover";
-function supportsHintPopover(element) {
-	const view = element.ownerDocument.defaultView;
-	if (!view) return false;
-	const prototype = view.HTMLElement.prototype;
-	if (!Object.hasOwn(prototype, "popover") || typeof prototype.showPopover !== "function" || typeof prototype.hidePopover !== "function") return false;
-	const probe = element.ownerDocument.createElement("div");
-	probe.setAttribute("popover", "hint");
-	return probe.popover === "hint";
-}
-function isPopoverOpen(element) {
-	try {
-		return element.matches(":popover-open");
-	} catch {
-		return false;
-	}
-}
 function isOwnLifecycleEvent(event, instance) {
 	return event.detail?.instance === instance;
 }

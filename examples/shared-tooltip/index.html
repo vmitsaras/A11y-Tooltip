@@ -52,7 +52,26 @@
       align-items: center;
     }
 
-    .controls button {
+    .control-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.375rem;
+      align-items: center;
+      padding: 0.375rem;
+      border: 1px solid #c7ccd4;
+      border-radius: 0.5rem;
+      background: #ffffff;
+    }
+
+    .control-group span {
+      padding-inline: 0.375rem;
+      color: #414852;
+      font-size: 0.9375rem;
+      font-weight: 600;
+    }
+
+    .controls button,
+    .control-group button {
       min-block-size: 2.75rem;
       padding-inline: 1rem;
       border: 1px solid #8c95a3;
@@ -60,6 +79,12 @@
       background: white;
       color: inherit;
       font: inherit;
+    }
+
+    .control-group button[aria-pressed="true"] {
+      border-color: #2457d6;
+      background: #2457d6;
+      color: #ffffff;
     }
 
     .status {
@@ -74,12 +99,11 @@
     <h1>Shared tooltip controller</h1>
 
     <p>
-      This toolbar uses one shared tooltip for every control. By default it is
-      visual-only. Add <code>?render=hint</code> for experimental native
-      <code>popover="hint"</code> rendering and
-      <code>&amp;semantics=describedby</code> for experimental dynamic
-      <code>aria-describedby</code> ownership, and
-      <code>&amp;motion=move</code> for native WAAPI FLIP retarget motion.
+      This toolbar uses one shared tooltip for every control. Use the controls
+      below to compare anchored rendering, experimental native
+      <code>popover="hint"</code>, experimental dynamic
+      <code>aria-describedby</code> ownership, and native WAAPI FLIP retarget
+      motion.
     </p>
 
     <p>
@@ -88,6 +112,86 @@
     </p>
 
     <div class="controls">
+      <div class="control-group" aria-label="Rendering mode">
+        <span>Render</span>
+        <button
+          type="button"
+          data-mode-param="render"
+          data-mode-value=""
+          aria-pressed="false"
+        >
+          Anchored
+        </button>
+        <button
+          type="button"
+          data-mode-param="render"
+          data-mode-value="hint"
+          aria-pressed="false"
+        >
+          Native hint
+        </button>
+      </div>
+
+      <div class="control-group" aria-label="Semantics mode">
+        <span>Semantics</span>
+        <button
+          type="button"
+          data-mode-param="semantics"
+          data-mode-value=""
+          aria-pressed="false"
+        >
+          Visual
+        </button>
+        <button
+          type="button"
+          data-mode-param="semantics"
+          data-mode-value="describedby"
+          aria-pressed="false"
+        >
+          Describedby
+        </button>
+      </div>
+
+      <div class="control-group" aria-label="Motion mode">
+        <span>Motion</span>
+        <button
+          type="button"
+          data-mode-param="motion"
+          data-mode-value=""
+          aria-pressed="false"
+        >
+          Off
+        </button>
+        <button
+          type="button"
+          data-mode-param="motion"
+          data-mode-value="move"
+          aria-pressed="false"
+        >
+          Move
+        </button>
+      </div>
+
+      <div class="control-group" aria-label="Motion duration">
+        <span>Duration</span>
+        <button
+          type="button"
+          data-mode-param="motionDuration"
+          data-mode-value="180"
+          aria-pressed="false"
+        >
+          180ms
+        </button>
+        <button
+          type="button"
+          data-mode-param="motionDuration"
+          data-mode-value="600"
+          aria-pressed="false"
+        >
+          600ms
+        </button>
+      </div>
+
       <button type="button" data-add-trigger>
         Add dynamic trigger
       </button>
@@ -152,6 +256,36 @@
       modeSummary.textContent =
         `${renderMode} · ${semantics} · motion:${motion}`;
     }
+
+    document
+      .querySelectorAll("[data-mode-param]")
+      .forEach((control) => {
+        if (!(control instanceof HTMLButtonElement)) {
+          return;
+        }
+
+        const name = control.dataset.modeParam ?? "";
+        const value = control.dataset.modeValue ?? "";
+        const activeValue = params.get(name) ?? "";
+
+        control.setAttribute(
+          "aria-pressed",
+          String(activeValue === value)
+        );
+
+        control.addEventListener("click", () => {
+          const next = new URL(location.href);
+
+          if (value) {
+            next.searchParams.set(name, value);
+          } else {
+            next.searchParams.delete(name);
+          }
+
+          location.href = next.href;
+        });
+      });
+
     const count = Math.min(
       Math.max(Number.isFinite(requestedCount) ? requestedCount : 120, 1),
       500

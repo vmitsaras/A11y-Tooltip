@@ -67,6 +67,24 @@ function supportsAnchorPositioning(element) {
 	return css.supports("anchor-name: --a11y-tooltip-anchor") && css.supports("position-anchor: --a11y-tooltip-anchor") && css.supports("position-area: top span-all") && css.supports("align-self: anchor-center") && css.supports("position-try-fallbacks: flip-block");
 }
 //#endregion
-export { restoreInlineStyle as a, supportsAnchorPositioning as c, normalizeAnchorFallbacks as i, createAnchorName as n, serializeAnchorFallbacks as o, mergeAnchorName as r, snapshotInlineStyle as s, ANCHOR_POSITIONING_FALLBACKS as t };
+//#region src/internal/hint-popover.ts
+function supportsHintPopover(element) {
+	const view = element.ownerDocument.defaultView;
+	if (!view) return false;
+	const prototype = view.HTMLElement.prototype;
+	if (!Object.hasOwn(prototype, "popover") || typeof prototype.showPopover !== "function" || typeof prototype.hidePopover !== "function") return false;
+	const probe = element.ownerDocument.createElement("div");
+	probe.setAttribute("popover", "hint");
+	return probe.popover === "hint";
+}
+function isPopoverOpen(element) {
+	try {
+		return element.matches(":popover-open");
+	} catch {
+		return false;
+	}
+}
+//#endregion
+export { mergeAnchorName as a, serializeAnchorFallbacks as c, createAnchorName as i, snapshotInlineStyle as l, supportsHintPopover as n, normalizeAnchorFallbacks as o, ANCHOR_POSITIONING_FALLBACKS as r, restoreInlineStyle as s, isPopoverOpen as t, supportsAnchorPositioning as u };
 
-//# sourceMappingURL=anchor-positioning-DKoOS3IM.js.map
+//# sourceMappingURL=hint-popover-CGYFj02V.js.map

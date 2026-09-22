@@ -289,12 +289,75 @@ initTooltipsAll({
           data-tooltip-text="Insert link"
         >↗</button>
       </div>
+
+      <h3>Compare retarget motion</h3>
+      <p>
+        Use the motion buttons, then move focus or hover across the row. The
+        <strong>Move</strong> mode uses WAAPI FLIP animation to travel from the
+        previous command to the next one.
+      </p>
+      <div
+        class="shared-motion-controls"
+        role="group"
+        aria-label="Shared tooltip motion mode"
+      >
+        <button
+          class="demo-button shared-motion-controls__button"
+          type="button"
+          data-shared-motion="none"
+          aria-pressed="true"
+        >
+          Still
+        </button>
+        <button
+          class="demo-button shared-motion-controls__button"
+          type="button"
+          data-shared-motion="move"
+          aria-pressed="false"
+        >
+          Move
+        </button>
+      </div>
+      <div
+        class="shared-toolbar shared-toolbar--motion"
+        data-demo-shared-motion-toolbar
+        data-motion="none"
+        aria-label="Motion comparison commands"
+      >
+        <button
+          class="shared-toolbar__button"
+          type="button"
+          aria-label="Pin"
+          data-tooltip-text="Pin"
+        >Pin</button>
+        <button
+          class="shared-toolbar__button"
+          type="button"
+          aria-label="Archive"
+          data-tooltip-text="Archive"
+        >Archive</button>
+        <button
+          class="shared-toolbar__button"
+          type="button"
+          aria-label="Share"
+          data-tooltip-text="Share"
+        >Share</button>
+        <button
+          class="shared-toolbar__button"
+          type="button"
+          aria-label="Export"
+          data-tooltip-text="Export"
+        >Export</button>
+      </div>
       <pre class="demo-code"><code>import {
   createSharedTooltip
 } from "a11y-tooltip/shared";
 import "a11y-tooltip/styles.css";
 
 const toolbar = document.querySelector("[data-demo-shared-toolbar]");
+const motionToolbar = document.querySelector(
+  "[data-demo-shared-motion-toolbar]"
+);
 
 if (toolbar instanceof HTMLElement) {
   const controller = createSharedTooltip(toolbar, {
@@ -306,6 +369,22 @@ if (toolbar instanceof HTMLElement) {
 
     placement: "bottom"
   });
+}
+
+if (motionToolbar instanceof HTMLElement) {
+  const controller = createSharedTooltip(motionToolbar, {
+    triggers: "[data-tooltip-text]",
+    getContent(trigger) {
+      return trigger.dataset.tooltipText ?? "";
+    },
+    motion: "move",
+    motionDuration: 320,
+    motionEasing: "ease-in-out",
+    showDelay: 0,
+    hideDelay: 300,
+    placement: "bottom"
+  });
+  controller.tooltip.classList.add("shared-toolbar-motion__tooltip");
 }</code></pre>
     </section>
 
@@ -393,6 +472,12 @@ if (toolbar instanceof HTMLElement) {
     }, document.querySelector("[data-demo-overflow]"));
 
     const sharedToolbar = document.querySelector("[data-demo-shared-toolbar]");
+    const sharedMotionToolbar = document.querySelector(
+      "[data-demo-shared-motion-toolbar]"
+    );
+    const sharedMotionControls = document.querySelectorAll(
+      "[data-shared-motion]"
+    );
 
     if (sharedToolbar instanceof HTMLElement) {
       createSharedTooltip(sharedToolbar, {
@@ -403,6 +488,57 @@ if (toolbar instanceof HTMLElement) {
         placement: "bottom"
       });
     }
+
+    let sharedMotionController = null;
+    let activeSharedMotion = "none";
+
+    function setSharedMotion(nextMotion) {
+      if (!(sharedMotionToolbar instanceof HTMLElement)) {
+        return;
+      }
+
+      sharedMotionController?.destroy();
+      activeSharedMotion = nextMotion;
+      sharedMotionToolbar.dataset.motion = nextMotion;
+
+      for (const control of sharedMotionControls) {
+        if (control instanceof HTMLButtonElement) {
+          control.setAttribute(
+            "aria-pressed",
+            String(control.dataset.sharedMotion === nextMotion)
+          );
+        }
+      }
+
+      sharedMotionController = createSharedTooltip(sharedMotionToolbar, {
+        triggers: "[data-tooltip-text]",
+        getContent(trigger) {
+          return trigger.dataset.tooltipText ?? "";
+        },
+        motion: nextMotion,
+        motionDuration: 320,
+        motionEasing: "ease-in-out",
+        showDelay: 0,
+        hideDelay: 300,
+        placement: "bottom"
+      });
+      sharedMotionController.tooltip.classList.add("shared-toolbar-motion__tooltip");
+    }
+
+    for (const control of sharedMotionControls) {
+      if (control instanceof HTMLButtonElement) {
+        control.addEventListener("click", () => {
+          const nextMotion =
+            control.dataset.sharedMotion === "move" ? "move" : "none";
+
+          if (nextMotion !== activeSharedMotion) {
+            setSharedMotion(nextMotion);
+          }
+        });
+      }
+    }
+
+    setSharedMotion(activeSharedMotion);
 
     const log = document.querySelector("[data-event-log]");
     const interestingEvents = new Set([

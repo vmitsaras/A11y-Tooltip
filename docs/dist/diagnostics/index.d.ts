@@ -3,7 +3,7 @@ import { SharedTooltipOptions } from "../shared/index.js";
 //#region src/diagnostics/index.d.ts
 declare const TOOLTIP_DIAGNOSTIC_SEVERITIES: readonly ["error", "warning", "info"];
 type TooltipDiagnosticSeverity = (typeof TOOLTIP_DIAGNOSTIC_SEVERITIES)[number];
-declare const TOOLTIP_DIAGNOSTIC_CODES: readonly ["adapter-threw", "adapter-unresolved", "missing-trigger", "duplicate-trigger", "missing-tooltip", "duplicate-tooltip", "trigger-not-focusable", "trigger-no-obvious-name", "native-title-conflict", "tooltip-empty", "tooltip-interactive-content", "tooltip-duplicate-id", "describedby-broken-reference", "describedby-missing-tooltip", "authored-tooltip-hidden", "nested-tooltip-root", "nested-shared-tooltip-root", "shared-content-empty", "shared-invalid-trigger-selector", "shared-no-triggers"];
+declare const TOOLTIP_DIAGNOSTIC_CODES: readonly ["adapter-threw", "adapter-unresolved", "missing-trigger", "duplicate-trigger", "missing-tooltip", "duplicate-tooltip", "trigger-not-focusable", "trigger-no-obvious-name", "native-title-conflict", "tooltip-empty", "tooltip-interactive-content", "tooltip-duplicate-id", "describedby-broken-reference", "describedby-missing-tooltip", "authored-tooltip-hidden", "nested-tooltip-root", "nested-shared-tooltip-root", "shared-content-empty", "shared-describedby-experimental", "shared-describedby-preexisting-reference", "shared-hint-popover-experimental", "shared-invalid-trigger-selector", "shared-no-triggers", "shared-tooltip-duplicate-id"];
 type TooltipDiagnosticCode = (typeof TOOLTIP_DIAGNOSTIC_CODES)[number];
 interface TooltipDiagnostic {
   readonly code: TooltipDiagnosticCode;
@@ -35,6 +35,8 @@ interface ScanSharedTooltipOptions {
   triggers: SharedTooltipOptions["triggers"];
   getContent: SharedTooltipOptions["getContent"];
   tooltip?: HTMLElement;
+  renderMode?: SharedTooltipOptions["renderMode"];
+  semantics?: SharedTooltipOptions["semantics"];
 }
 /**
  * Runs read-only diagnostics for a shared-tooltip container.

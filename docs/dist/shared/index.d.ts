@@ -13,9 +13,15 @@ declare const sharedTooltipEvents: Readonly<{
   destroy: "a11y-tooltip-shared:destroy";
 }>;
 type SharedTooltipOpenReason = "api" | "focus" | "hover";
-type SharedTooltipCloseReason = "api" | "blur" | "content-empty" | "destroy" | "escape" | "leave" | "trigger-removed";
+type SharedTooltipCloseReason = "api" | "blur" | "content-empty" | "destroy" | "escape" | "leave" | "platform" | "trigger-removed";
 type SharedTooltipReason = SharedTooltipOpenReason | SharedTooltipCloseReason;
 type SharedTooltipPositionFallback = AnchorPositioningFallback;
+declare const SHARED_TOOLTIP_RENDER_MODES: readonly ["anchored", "hint-popover"];
+type SharedTooltipRenderMode = (typeof SHARED_TOOLTIP_RENDER_MODES)[number];
+declare const SHARED_TOOLTIP_SEMANTICS: readonly ["visual-only", "describedby"];
+type SharedTooltipSemantics = (typeof SHARED_TOOLTIP_SEMANTICS)[number];
+declare const SHARED_TOOLTIP_MOTIONS: readonly ["none", "move"];
+type SharedTooltipMotion = (typeof SHARED_TOOLTIP_MOTIONS)[number];
 interface SharedTooltipOptions {
   /**
    * Selector for delegated tooltip triggers inside the controller container.
@@ -40,12 +46,42 @@ interface SharedTooltipOptions {
    * CSS Anchor Positioning fallback tactics. Defaults are placement-aware.
    */
   fallbacks?: readonly SharedTooltipPositionFallback[];
+  /**
+   * Experimental rendering mode. "hint-popover" enters the top layer when
+   * both popover="hint" and the required Anchor Positioning features exist.
+   * Unsupported browsers fall back to anchored rendering.
+   */
+  renderMode?: SharedTooltipRenderMode;
+  /**
+   * Experimental semantics mode. "describedby" temporarily appends the
+   * shared tooltip id to only the active trigger's aria-describedby tokens.
+   * The default remains visual-only.
+   */
+  semantics?: SharedTooltipSemantics;
+  /**
+   * Retarget motion. "move" uses a zero-dependency WAAPI FLIP animation
+   * between the current visual position and the new anchored position.
+   * The default is "none".
+   */
+  motion?: SharedTooltipMotion;
+  /**
+   * Retarget animation duration in milliseconds. Defaults to 180.
+   */
+  motionDuration?: number;
+  /**
+   * WAAPI easing string used by motion="move".
+   */
+  motionEasing?: string;
 }
 interface SharedTooltipController {
   readonly container: HTMLElement;
   readonly tooltip: HTMLElement;
   readonly activeTrigger: HTMLElement | null;
   readonly isOpen: boolean;
+  readonly renderMode: SharedTooltipRenderMode;
+  readonly semantics: SharedTooltipSemantics;
+  readonly motion: SharedTooltipMotion;
+  readonly usesNativeHint: boolean;
   showFor(trigger: HTMLElement, reason?: SharedTooltipOpenReason): boolean;
   close(reason?: SharedTooltipCloseReason): boolean;
   refresh(): boolean;
@@ -63,5 +99,5 @@ declare const sharedTooltipSelectors: Readonly<{
   content: "[data-a11y-shared-tooltip-content]";
 }>;
 //#endregion
-export { SharedTooltipCloseReason, SharedTooltipController, SharedTooltipLifecycleDetail, SharedTooltipOpenReason, SharedTooltipOptions, SharedTooltipPositionFallback, SharedTooltipReason, createSharedTooltip, sharedTooltipEvents, sharedTooltipSelectors };
+export { SHARED_TOOLTIP_MOTIONS, SHARED_TOOLTIP_RENDER_MODES, SHARED_TOOLTIP_SEMANTICS, SharedTooltipCloseReason, SharedTooltipController, SharedTooltipLifecycleDetail, SharedTooltipMotion, SharedTooltipOpenReason, SharedTooltipOptions, SharedTooltipPositionFallback, SharedTooltipReason, SharedTooltipRenderMode, SharedTooltipSemantics, createSharedTooltip, sharedTooltipEvents, sharedTooltipSelectors };
 //# sourceMappingURL=index.d.ts.map

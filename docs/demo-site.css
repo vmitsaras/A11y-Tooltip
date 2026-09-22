@@ -251,6 +251,31 @@ kbd {
   background: #ffffff;
 }
 
+.shared-toolbar--motion {
+  gap: 0.25rem;
+  margin-block-start: 1rem;
+}
+
+.shared-toolbar-motion__tooltip {
+  --a11y-tooltip-inline-size: 5.5rem;
+
+  text-align: center;
+}
+
+.shared-motion-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  margin-block-start: 1rem;
+}
+
+.shared-motion-controls__button[aria-pressed="true"] {
+  border-color: #2457d6;
+  background: #2457d6;
+  color: #ffffff;
+}
+
 .shared-toolbar__button {
   display: inline-grid;
   place-items: center;

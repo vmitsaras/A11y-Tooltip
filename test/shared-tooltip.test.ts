@@ -215,6 +215,12 @@ describe("createSharedTooltip", () => {
 
   it("uses WAAPI FLIP for opt-in retarget motion", () => {
     const { container, first, second } = renderToolbar();
+    const animationFrames: FrameRequestCallback[] = [];
+    const requestFrame = vi.spyOn(window, "requestAnimationFrame")
+      .mockImplementation((callback) => {
+        animationFrames.push(callback);
+        return animationFrames.length;
+      });
 
     const controller = createSharedTooltip(container, {
       triggers: "[data-tooltip-text]",
@@ -238,7 +244,7 @@ describe("createSharedTooltip", () => {
       "getBoundingClientRect"
     )
       .mockReturnValueOnce(rects[0])
-      .mockReturnValueOnce(rects[1]);
+      .mockReturnValue(rects[1]);
 
     const cancel = vi.fn();
     const animation = new EventTarget() as EventTarget & {
@@ -262,6 +268,10 @@ describe("createSharedTooltip", () => {
 
     focusIn(first);
     focusOut(first, second);
+    expect(animate).not.toHaveBeenCalled();
+    animationFrames[0]?.(0);
+    expect(animate).not.toHaveBeenCalled();
+    animationFrames[1]?.(16);
 
     expect(controller.motion).toBe("move");
     expect(animate).toHaveBeenCalledTimes(1);
@@ -269,10 +279,10 @@ describe("createSharedTooltip", () => {
     expect(animate).toHaveBeenCalledWith(
       [
         {
-          translate: "-130px 0px"
+          transform: "translate(-120px, 0px)"
         },
         {
-          translate: "0px 0px"
+          transform: "translate(0, 0)"
         }
       ],
       {
@@ -284,6 +294,7 @@ describe("createSharedTooltip", () => {
 
     expect(controller.activeTrigger).toBe(second);
     expect(controller.tooltip.textContent).toBe("Italic");
+    requestFrame.mockRestore();
   });
 
   it("keeps retarget state correct if WAAPI animation creation fails", () => {
@@ -327,6 +338,69 @@ describe("createSharedTooltip", () => {
     expect(controller.isOpen).toBe(true);
     expect(controller.activeTrigger).toBe(second);
     expect(controller.tooltip.textContent).toBe("Italic");
+  });
+
+  it("keeps the original visual position during a pending rapid retarget", () => {
+    const { container, first, second, third } = renderToolbar();
+    const frames: FrameRequestCallback[] = [];
+    const requestFrame = vi.spyOn(window, "requestAnimationFrame")
+      .mockImplementation((callback) => {
+        frames.push(callback);
+        return frames.length;
+      });
+    const cancelFrame = vi.spyOn(window, "cancelAnimationFrame")
+      .mockImplementation(() => undefined);
+
+    const controller = createSharedTooltip(container, {
+      triggers: "[data-tooltip-text]",
+      getContent(trigger) {
+        return trigger.dataset.tooltipText;
+      },
+      motion: "move",
+      showDelay: 0,
+      hideDelay: 0
+    });
+
+    const measure = vi.spyOn(
+      controller.tooltip,
+      "getBoundingClientRect"
+    )
+      .mockReturnValueOnce(new DOMRect(20, 20, 80, 40))
+      .mockReturnValueOnce(new DOMRect(140, 20, 80, 40))
+      .mockReturnValue(new DOMRect(240, 20, 80, 40));
+    const animation = new EventTarget() as EventTarget & {
+      cancel: ReturnType<typeof vi.fn>;
+    };
+    animation.cancel = vi.fn();
+    const animate = vi.fn(
+      () => animation as unknown as Animation
+    );
+
+    Object.defineProperty(controller.tooltip, "animate", {
+      configurable: true,
+      value: animate
+    });
+
+    focusIn(first);
+    focusOut(first, second);
+    focusOut(second, third);
+
+    expect(cancelFrame).toHaveBeenCalledWith(1);
+    expect(measure).toHaveBeenCalledTimes(3);
+    frames[1]?.(0);
+    frames[2]?.(16);
+
+    expect(animate).toHaveBeenCalledWith(
+      [
+        { transform: "translate(-220px, 0px)" },
+        { transform: "translate(0, 0)" }
+      ],
+      expect.any(Object)
+    );
+    expect(controller.activeTrigger).toBe(third);
+
+    requestFrame.mockRestore();
+    cancelFrame.mockRestore();
   });
 
   it("gives keyboard focus priority over pointer hover", () => {

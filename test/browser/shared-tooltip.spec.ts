@@ -587,19 +587,34 @@ test("WAAPI move motion animates one shared tooltip between triggers", async ({
 
   await expect(tooltip).toHaveText("Command 2");
 
+  await expect.poll(() =>
+    tooltip.evaluate((element) =>
+      element.getAnimations().length
+    )
+  ).toBe(1);
+
   const state = await tooltip.evaluate((element) => {
     const animations = element.getAnimations();
+    const keyframes =
+      animations[0]?.effect instanceof KeyframeEffect
+        ? animations[0].effect.getKeyframes()
+        : [];
 
     return {
       count: animations.length,
       duration:
         animations[0]?.effect?.getTiming().duration ??
-        null
+        null,
+      firstTransform:
+        String(keyframes[0]?.transform ?? "")
     };
   });
 
   expect(state.count).toBe(1);
   expect(state.duration).toBe(600);
+  expect(state.firstTransform).toContain(
+    "translate"
+  );
 
   expect(
     await page.evaluate(() =>
@@ -629,6 +644,12 @@ test("rapid WAAPI retargeting replaces motion instead of queueing it", async ({
   await triggers.nth(0).focus();
   await triggers.nth(1).focus();
 
+  await expect.poll(() =>
+    tooltip.evaluate((element) =>
+      element.getAnimations().length
+    )
+  ).toBe(1);
+
   await page.waitForTimeout(80);
 
   const middleRect = await tooltip.boundingBox();
@@ -637,8 +658,8 @@ test("rapid WAAPI retargeting replaces motion instead of queueing it", async ({
 
   await expect(tooltip).toHaveText("Command 3");
 
-  expect(
-    await tooltip.evaluate((element) =>
+  await expect.poll(() =>
+    tooltip.evaluate((element) =>
       element.getAnimations().length
     )
   ).toBe(1);
@@ -678,6 +699,175 @@ test("rapid WAAPI retargeting replaces motion instead of queueing it", async ({
       window.__sharedTooltip.activeTrigger?.dataset.triggerIndex
     )
   ).toBe("3");
+});
+
+test("scrolled docs demo moves across its row without page-sized travel", async ({
+  page
+}) => {
+  await page.goto("/docs/");
+
+  const toolbar = page.locator(
+    "[data-demo-shared-motion-toolbar]"
+  );
+  const buttons = toolbar.locator("button");
+
+  await expect(toolbar).toHaveClass(
+    /is-shared-tooltip-initialized/u
+  );
+  await page.locator('[data-shared-motion="move"]').click();
+
+  await buttons.nth(0).focus();
+  await buttons.nth(1).focus();
+
+  const tooltip = page.locator(
+    '[data-a11y-shared-tooltip-content]:not([hidden])'
+  );
+
+  await expect(tooltip).toHaveText("Archive");
+  await expect.poll(() =>
+    tooltip.evaluate((element) =>
+      element.getAnimations().length
+    )
+  ).toBe(1);
+
+  const travel = await tooltip.evaluate((element) => {
+    const effect = element.getAnimations()[0]?.effect;
+    const firstFrame = effect instanceof KeyframeEffect
+      ? effect.getKeyframes()[0]
+      : undefined;
+    const transform = String(firstFrame?.transform ?? "");
+    const matrix = new DOMMatrix(transform);
+
+    return { x: matrix.m41, y: matrix.m42 };
+  });
+
+  expect(Math.abs(travel.x)).toBeGreaterThan(20);
+  expect(Math.abs(travel.y)).toBeLessThan(5);
+});
+
+test("docs motion demo visibly travels between differently sized labels", async ({ page }) => {
+  await page.goto("/docs/");
+  await page.locator('[data-shared-motion="move"]').click();
+  const buttons = page.locator("[data-demo-shared-motion-toolbar] button");
+  const tooltip = page.locator('[data-a11y-shared-tooltip-content]:not([hidden])');
+
+  await buttons.nth(0).focus();
+  const start = await tooltip.boundingBox();
+  await buttons.nth(1).focus();
+  await expect.poll(() => tooltip.evaluate((element) => element.getAnimations().length)).toBe(1);
+  const early = await tooltip.boundingBox();
+  await page.waitForTimeout(120);
+  const middle = await tooltip.boundingBox();
+  await expect.poll(() => tooltip.evaluate((element) => element.getAnimations().length)).toBe(0);
+  const end = await tooltip.boundingBox();
+
+  if (!start || !early || !middle || !end) throw new Error("Tooltip was not measurable");
+  expect(Math.abs(start.width - end.width)).toBeLessThan(1);
+  expect(Math.abs(early.width - end.width)).toBeLessThan(1);
+  expect(Math.abs(middle.width - end.width)).toBeLessThan(1);
+  expect(early.x).toBeLessThan(end.x - 10);
+  expect(middle.x).toBeGreaterThan(early.x);
+  expect(middle.x).toBeLessThan(end.x);
+});
+
+test("scrolled docs keeps the tooltip in place until retarget motion begins", async ({ page }) => {
+  await page.goto("/docs/");
+  await page.locator('[data-shared-motion="move"]').click();
+
+  const positions = await page.evaluate(async () => {
+    const buttons = document.querySelectorAll<HTMLButtonElement>(
+      "[data-demo-shared-motion-toolbar] button"
+    );
+    if (!buttons[0] || !buttons[1]) {
+      throw new Error("Motion demo is missing");
+    }
+
+    buttons[0].focus();
+    const tooltip = document.querySelector<HTMLElement>(
+      "[data-a11y-shared-tooltip-content]:not([hidden])"
+    );
+    if (!tooltip) {
+      throw new Error("Motion tooltip is missing");
+    }
+    const before = tooltip.getBoundingClientRect();
+    buttons[1].focus();
+    const immediate = tooltip.getBoundingClientRect();
+    const nextFrame = await new Promise<DOMRect>((resolve) => {
+      requestAnimationFrame(() => resolve(tooltip.getBoundingClientRect()));
+    });
+
+    return { before: before.x, immediate: immediate.x, nextFrame: nextFrame.x };
+  });
+
+  expect(Math.abs(positions.immediate - positions.before)).toBeLessThan(5);
+  expect(Math.abs(positions.nextFrame - positions.before)).toBeLessThan(5);
+});
+
+test("scrolled docs retarget stays on screen after every paint", async ({ page }) => {
+  await page.goto("/docs/");
+  await page.locator('[data-shared-motion="move"]').click();
+
+  const samples = await page.evaluate(async () => {
+    const buttons = document.querySelectorAll<HTMLButtonElement>(
+      "[data-demo-shared-motion-toolbar] button"
+    );
+    const afterPaint = () => new Promise<void>((resolve) => {
+      requestAnimationFrame(() => setTimeout(resolve, 0));
+    });
+    buttons[0]!.focus();
+    await afterPaint();
+    await afterPaint();
+    const tooltip = document.querySelector<HTMLElement>(
+      "[data-a11y-shared-tooltip-content]:not([hidden])"
+    )!;
+    const origin = tooltip.getBoundingClientRect();
+    const frames: { x: number; y: number; hidden: boolean }[] = [];
+    // Include interruptions before the preceding animation finishes.
+    for (const index of [1, 2, 3, 2, 1, 0]) {
+      buttons[index]!.focus();
+      for (let frame = 0; frame < 4; frame += 1) {
+        await afterPaint();
+        const rect = tooltip.getBoundingClientRect();
+        frames.push({ x: rect.x, y: rect.y, hidden: Boolean(tooltip.hidden) });
+      }
+    }
+    return { scrollY, origin: { x: origin.x, y: origin.y }, frames };
+  });
+
+  expect(samples.scrollY).toBeGreaterThan(500);
+  for (const frame of samples.frames) {
+    expect(frame.hidden).toBe(false);
+    expect(Math.abs(frame.y - samples.origin.y)).toBeLessThan(1);
+    expect(frame.x).toBeGreaterThanOrEqual(samples.origin.x - 1);
+    expect(frame.x).toBeLessThan(samples.origin.x + 300);
+  }
+});
+
+test("docs motion demo retains the shared tooltip across a brief pointer gap", async ({ page }) => {
+  await page.goto("/docs/");
+  await page.locator('[data-shared-motion="move"]').click();
+
+  const buttons = page.locator("[data-demo-shared-motion-toolbar] button");
+  const tooltip = page.locator('[data-a11y-shared-tooltip-content]:not([hidden])');
+  await page.evaluate(() => {
+    const toolbar = document.querySelector<HTMLElement>("[data-demo-shared-motion-toolbar]");
+    toolbar?.addEventListener(
+      "a11y-tooltip-shared:close",
+      () => { toolbar.dataset.closeCount = String(Number(toolbar.dataset.closeCount ?? 0) + 1); }
+    );
+  });
+
+  await buttons.nth(0).hover();
+  await expect(tooltip).toHaveText("Pin");
+  await page.evaluate(() => {
+    const first = document.querySelector("[data-demo-shared-motion-toolbar] button");
+    first?.dispatchEvent(new PointerEvent("pointerout", { bubbles: true }));
+  });
+  await page.waitForTimeout(140);
+  await expect(tooltip).toHaveText("Pin");
+  await buttons.nth(1).hover();
+  await expect(tooltip).toHaveText("Archive");
+  await expect(page.locator("[data-demo-shared-motion-toolbar]")).not.toHaveAttribute("data-close-count");
 });
 
 test("prefers-reduced-motion disables shared retarget travel", async ({
@@ -741,8 +931,8 @@ test("motion does not delay describedby ownership updates", async ({
     "Command 2"
   );
 
-  expect(
-    await tooltip.evaluate((element) =>
+  await expect.poll(() =>
+    tooltip.evaluate((element) =>
       element.getAnimations().length
     )
   ).toBe(1);
@@ -769,8 +959,8 @@ test("WAAPI move motion works with native hint top-layer retargeting", async ({
     )
   ).toBe(true);
 
-  expect(
-    await tooltip.evaluate((element) =>
+  await expect.poll(() =>
+    tooltip.evaluate((element) =>
       element.getAnimations().length
     )
   ).toBe(1);
@@ -797,8 +987,8 @@ test("closing during shared motion cancels the active animation", async ({
   await triggers.nth(0).focus();
   await triggers.nth(1).focus();
 
-  expect(
-    await tooltip.evaluate((element) =>
+  await expect.poll(() =>
+    tooltip.evaluate((element) =>
       element.getAnimations().length
     )
   ).toBe(1);
@@ -813,4 +1003,3 @@ test("closing during shared motion cancels the active animation", async ({
     )
   ).toBe(0);
 });
-
