@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta
+    name="description"
+    content="Interactive demo for A11y Tooltip, a small accessible TypeScript tooltip plugin."
+  >
+  <title>A11y Tooltip — Accessible tooltip demo</title>
+  <link rel="stylesheet" href="./dist/styles.css">
+  <link rel="stylesheet" href="./demo-site.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="site-header__brand" href="./">A11y Tooltip</a>
+    <a href="https://github.com/vmitsaras/A11y-Tooltip">GitHub</a>
+  </header>
+
+  <main class="demo">
+    <section class="hero" aria-labelledby="demo-title">
+      <p class="eyebrow">Accessible UI primitive</p>
+      <h1 id="demo-title">A tooltip that behaves like a tooltip.</h1>
+      <p class="hero__lede">
+        Focus or hover a trigger. Move the pointer onto the tooltip if you need
+        more time to read it. Press <kbd>Escape</kbd> to dismiss it without
+        moving focus.
+      </p>
+    </section>
+
+    <section class="demo-panel" aria-labelledby="playground-title">
+      <div class="demo-panel__heading">
+        <div>
+          <p class="eyebrow">Live playground</p>
+          <h2 id="playground-title">Four placements, one interaction model</h2>
+        </div>
+        <p class="demo-panel__note">
+          No click-to-toggle behavior. Interactive floating content belongs in
+          a popover or dialog.
+        </p>
+      </div>
+
+      <div class="tooltip-grid">
+        <span class="a11y-tooltip" data-a11y-tooltip data-a11y-tooltip-placement="top">
+          <button class="demo-button a11y-tooltip__trigger" data-a11y-tooltip-trigger>Top</button>
+          <span class="a11y-tooltip__content" data-a11y-tooltip-content>
+            Useful context placed above the trigger.
+          </span>
+        </span>
+
+        <span class="a11y-tooltip" data-a11y-tooltip data-a11y-tooltip-placement="right">
+          <button class="demo-button a11y-tooltip__trigger" data-a11y-tooltip-trigger>Right</button>
+          <span class="a11y-tooltip__content" data-a11y-tooltip-content>
+            The trigger keeps focus while this description is visible.
+          </span>
+        </span>
+
+        <span class="a11y-tooltip" data-a11y-tooltip data-a11y-tooltip-placement="bottom">
+          <button class="demo-button a11y-tooltip__trigger" data-a11y-tooltip-trigger>Bottom</button>
+          <span class="a11y-tooltip__content" data-a11y-tooltip-content>
+            Escape dismisses the tooltip without moving focus.
+          </span>
+        </span>
+
+        <span class="a11y-tooltip" data-a11y-tooltip data-a11y-tooltip-placement="left">
+          <button class="demo-button a11y-tooltip__trigger" data-a11y-tooltip-trigger>Left</button>
+          <span class="a11y-tooltip__content" data-a11y-tooltip-content>
+            Hover can move from the trigger onto this tooltip.
+          </span>
+        </span>
+      </div>
+    </section>
+
+    <section class="demo-panel" aria-labelledby="event-title">
+      <div class="demo-panel__heading">
+        <div>
+          <p class="eyebrow">Lifecycle</p>
+          <h2 id="event-title">Observable without owning your app</h2>
+        </div>
+      </div>
+
+      <p>
+        Open and close tooltips above to see bubbling lifecycle events. This is
+        useful for analytics, adapters, and application-level coordination.
+      </p>
+
+      <ol class="event-log" data-event-log aria-live="polite">
+        <li>Waiting for interaction.</li>
+      </ol>
+    </section>
+
+    <section class="demo-panel prose" aria-labelledby="contract-title">
+      <p class="eyebrow">Accessibility contract</p>
+      <h2 id="contract-title">Use the right pattern</h2>
+      <ul>
+        <li>The trigger must be keyboard-focusable and independently named.</li>
+        <li>The tooltip is descriptive content referenced by <code>aria-describedby</code>.</li>
+        <li>The tooltip never receives focus and must not contain interactive controls.</li>
+        <li>Essential instructions should stay visible rather than living only in a tooltip.</li>
+      </ul>
+    </section>
+  </main>
+
+  <script type="module">
+    import { initTooltipsAll } from "./dist/index.js";
+
+    initTooltipsAll();
+
+    const log = document.querySelector("[data-event-log]");
+    const interestingEvents = new Set([
+      "a11y-tooltip:open",
+      "a11y-tooltip:close"
+    ]);
+
+    document.addEventListener("a11y-tooltip:open", writeEvent);
+    document.addEventListener("a11y-tooltip:close", writeEvent);
+
+    function writeEvent(event) {
+      if (!(log instanceof HTMLOListElement) || !interestingEvents.has(event.type)) {
+        return;
+      }
+
+      if (log.children.length === 1 && log.textContent?.includes("Waiting")) {
+        log.replaceChildren();
+      }
+
+      const item = document.createElement("li");
+      const reason = event.detail?.reason ? ` · ${event.detail.reason}` : "";
+      item.textContent = `${event.type}${reason}`;
+      log.prepend(item);
+
+      while (log.children.length > 5) {
+        log.lastElementChild?.remove();
+      }
+    }
+  </script>
+</body>
+</html>
