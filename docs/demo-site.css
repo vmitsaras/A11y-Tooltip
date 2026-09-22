@@ -219,6 +219,11 @@ kbd {
   align-items: flex-start;
 }
 
+.addon-demo--hint {
+  flex-wrap: wrap;
+  align-items: center;
+}
+
 .addon-demo .a11y-tooltip {
   min-inline-size: 0;
   max-inline-size: 100%;
@@ -233,6 +238,26 @@ kbd {
   text-align: start;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.hint-popover-demo__clip-box {
+  inline-size: min(17rem, 100%);
+  block-size: 7rem;
+  overflow: hidden;
+  padding: 1rem;
+  border: 2px dashed #afa89c;
+  border-radius: 0.75rem;
+  background: #ffffff;
+}
+
+.hint-popover-demo__clip-box .a11y-tooltip {
+  margin-block-start: 3.25rem;
+}
+
+.hint-popover-demo__stack {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
 }
 
 .demo-code {

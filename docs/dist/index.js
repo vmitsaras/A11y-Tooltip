@@ -215,7 +215,12 @@ var A11yTooltip = class A11yTooltip {
 		this.clearShowTimer();
 		this.clearHideTimer();
 		if (!this.openState) return true;
-		if (reason !== "destroy" && !this.dispatch(EVENTS.beforeClose, { reason }, true)) return false;
+		if (reason !== "destroy") {
+			const cancelable = reason !== "escape" && reason !== "platform";
+			const allowed = this.dispatch(EVENTS.beforeClose, { reason }, cancelable);
+			if (cancelable && !allowed) return false;
+		}
+		if (reason === "escape" || reason === "platform") this.dismissedDuringActivation = true;
 		this.openState = false;
 		this.tooltip.hidden = true;
 		this.root.classList.remove(CLASSES.open);
@@ -281,7 +286,6 @@ var A11yTooltip = class A11yTooltip {
 	}
 	handleDocumentKeyDown(event) {
 		if (event.key !== "Escape" || !this.options.closeOnEscape || !this.openState) return;
-		this.dismissedDuringActivation = true;
 		this.close("escape");
 	}
 	scheduleOpen(reason) {

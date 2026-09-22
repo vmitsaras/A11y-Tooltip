@@ -138,6 +138,70 @@ initTooltipsAll({
 }, document.querySelector("[data-demo-anchor]"));</code></pre>
     </section>
 
+    <section class="demo-panel prose" aria-labelledby="hint-popover-title" data-demo-hint-popover>
+      <p class="eyebrow">Experimental addon · Native hint popover</p>
+      <h2 id="hint-popover-title">Let supporting browsers render the hint in the top layer</h2>
+      <p>
+        Use <code>createHintPopoverAddon()</code> when a tooltip needs the
+        browser's native <code>popover="hint"</code> behavior while preserving
+        the A11y Tooltip interaction model. The addon activates only when hint
+        popovers and the required CSS Anchor Positioning features are supported;
+        otherwise the ordinary tooltip remains in place.
+      </p>
+      <p>
+        Focus or hover <strong>Clipped container</strong>. In supporting
+        browsers, the description can escape the clipped demo box without
+        reparenting the tooltip or adding click-to-toggle behavior.
+      </p>
+      <div class="addon-demo addon-demo--hint">
+        <div class="hint-popover-demo__clip-box">
+          <span
+            class="a11y-tooltip"
+            data-a11y-tooltip
+            data-a11y-tooltip-placement="bottom"
+          >
+            <button class="demo-button a11y-tooltip__trigger" data-a11y-tooltip-trigger>
+              Clipped container
+            </button>
+            <span class="a11y-tooltip__content" data-a11y-tooltip-content>
+              This hint can render in the browser top layer when supported.
+            </span>
+          </span>
+        </div>
+        <div class="hint-popover-demo__stack">
+          <span class="a11y-tooltip" data-a11y-tooltip>
+            <button class="demo-button a11y-tooltip__trigger" data-a11y-tooltip-trigger>
+              First hint
+            </button>
+            <span class="a11y-tooltip__content" data-a11y-tooltip-content>
+              First native hint.
+            </span>
+          </span>
+          <span class="a11y-tooltip" data-a11y-tooltip>
+            <button class="demo-button a11y-tooltip__trigger" data-a11y-tooltip-trigger>
+              Second hint
+            </button>
+            <span class="a11y-tooltip__content" data-a11y-tooltip-content>
+              Second native hint.
+            </span>
+          </span>
+        </div>
+      </div>
+      <pre class="demo-code"><code>import { initTooltipsAll } from "a11y-tooltip";
+import { createHintPopoverAddon } from "a11y-tooltip/addons";
+import "a11y-tooltip/styles.css";
+
+initTooltipsAll({
+  addons: [createHintPopoverAddon()]
+}, document.querySelector("[data-demo-hint-popover]"));</code></pre>
+      <p>
+        If custom Anchor Positioning fallbacks are needed, place
+        <code>createAnchorPositioningAddon({...})</code> before
+        <code>createHintPopoverAddon()</code> in the addon list so the explicit
+        positioning configuration is shared.
+      </p>
+    </section>
+
     <section class="demo-panel prose" aria-labelledby="overflow-title" data-demo-overflow>
       <p class="eyebrow">Optional addon · Overflow only</p>
       <h2 id="overflow-title">Reveal text only when it is clipped</h2>
@@ -251,6 +315,7 @@ initTooltipsAll({
 
     import {
       createAnchorPositioningAddon,
+      createHintPopoverAddon,
       createOverflowOnlyAddon
     } from "./dist/addons/index.js";
 
@@ -258,6 +323,9 @@ initTooltipsAll({
     initTooltipsAll({
       addons: [createAnchorPositioningAddon()]
     }, document.querySelector("[data-demo-anchor]"));
+    initTooltipsAll({
+      addons: [createHintPopoverAddon()]
+    }, document.querySelector("[data-demo-hint-popover]"));
     initTooltipsAll({
       addons: [createOverflowOnlyAddon()]
     }, document.querySelector("[data-demo-overflow]"));

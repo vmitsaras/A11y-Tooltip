@@ -87,7 +87,7 @@ const ANCHOR_POSITIONING_FALLBACKS = Object.freeze([
 	"flip-start",
 	"flip-block flip-inline"
 ]);
-const ROOT_ATTRIBUTE = "data-a11y-tooltip-anchor-positioning";
+const ROOT_ATTRIBUTE$1 = "data-a11y-tooltip-anchor-positioning";
 const BLOCK_FIRST_FALLBACKS = Object.freeze([
 	"flip-block",
 	"flip-inline",
@@ -106,6 +106,7 @@ const GLOBAL_KEYWORDS = /* @__PURE__ */ new Set([
 	"unset"
 ]);
 let generatedAnchorId = 0;
+const ACTIVE_ANCHOR_SETUPS = /* @__PURE__ */ new WeakMap();
 function isFallback(value) {
 	return typeof value === "string" && ANCHOR_POSITIONING_FALLBACKS.includes(value);
 }
@@ -157,26 +158,153 @@ function serializeFallbacks(fallbacks) {
 * The addon does not move focus, change ARIA, reparent DOM, install observers,
 * or introduce a positioning runtime dependency.
 */
+function setupAnchorPositioning(instance, options = {}) {
+	const active = ACTIVE_ANCHOR_SETUPS.get(instance);
+	if (active) {
+		active.references += 1;
+		let released = false;
+		return () => {
+			if (released) return;
+			released = true;
+			const current = ACTIVE_ANCHOR_SETUPS.get(instance);
+			if (!current) return;
+			current.references -= 1;
+			if (current.references === 0) {
+				ACTIVE_ANCHOR_SETUPS.delete(instance);
+				current.restore();
+			}
+		};
+	}
+	const anchorName = createAnchorName();
+	const fallbacks = normalizeFallbacks(options.fallbacks, instance.options.placement);
+	const originalRootAttribute = instance.root.getAttribute(ROOT_ATTRIBUTE$1);
+	const originalAnchorName = snapshotInlineStyle(instance.trigger, "anchor-name");
+	const originalPositionAnchor = snapshotInlineStyle(instance.tooltip, "position-anchor");
+	const originalPositionTryFallbacks = snapshotInlineStyle(instance.tooltip, "position-try-fallbacks");
+	instance.root.setAttribute(ROOT_ATTRIBUTE$1, "");
+	instance.trigger.style.setProperty("anchor-name", mergeAnchorName(originalAnchorName.value, anchorName), originalAnchorName.priority);
+	instance.tooltip.style.setProperty("position-anchor", anchorName, originalPositionAnchor.priority);
+	instance.tooltip.style.setProperty("position-try-fallbacks", serializeFallbacks(fallbacks), originalPositionTryFallbacks.priority);
+	ACTIVE_ANCHOR_SETUPS.set(instance, {
+		references: 1,
+		restore() {
+			if (originalRootAttribute === null) instance.root.removeAttribute(ROOT_ATTRIBUTE$1);
+			else instance.root.setAttribute(ROOT_ATTRIBUTE$1, originalRootAttribute);
+			restoreInlineStyle(instance.trigger, "anchor-name", originalAnchorName);
+			restoreInlineStyle(instance.tooltip, "position-anchor", originalPositionAnchor);
+			restoreInlineStyle(instance.tooltip, "position-try-fallbacks", originalPositionTryFallbacks);
+		}
+	});
+	let released = false;
+	return () => {
+		if (released) return;
+		released = true;
+		const current = ACTIVE_ANCHOR_SETUPS.get(instance);
+		if (!current) return;
+		current.references -= 1;
+		if (current.references === 0) {
+			ACTIVE_ANCHOR_SETUPS.delete(instance);
+			current.restore();
+		}
+	};
+}
 function createAnchorPositioningAddon(options = {}) {
 	return Object.freeze({
 		name: "anchor-positioning",
 		setup(instance) {
-			const anchorName = createAnchorName();
-			const fallbacks = normalizeFallbacks(options.fallbacks, instance.options.placement);
-			const originalRootAttribute = instance.root.getAttribute(ROOT_ATTRIBUTE);
-			const originalAnchorName = snapshotInlineStyle(instance.trigger, "anchor-name");
-			const originalPositionAnchor = snapshotInlineStyle(instance.tooltip, "position-anchor");
-			const originalPositionTryFallbacks = snapshotInlineStyle(instance.tooltip, "position-try-fallbacks");
-			instance.root.setAttribute(ROOT_ATTRIBUTE, "");
-			instance.trigger.style.setProperty("anchor-name", mergeAnchorName(originalAnchorName.value, anchorName), originalAnchorName.priority);
-			instance.tooltip.style.setProperty("position-anchor", anchorName, originalPositionAnchor.priority);
-			instance.tooltip.style.setProperty("position-try-fallbacks", serializeFallbacks(fallbacks), originalPositionTryFallbacks.priority);
+			return setupAnchorPositioning(instance, options);
+		}
+	});
+}
+//#endregion
+//#region src/addons/hint-popover.ts
+const ROOT_ATTRIBUTE = "data-a11y-tooltip-hint-popover";
+function supportsHintPopover(element) {
+	const view = element.ownerDocument.defaultView;
+	if (!view) return false;
+	const prototype = view.HTMLElement.prototype;
+	if (!Object.hasOwn(prototype, "popover") || typeof prototype.showPopover !== "function" || typeof prototype.hidePopover !== "function") return false;
+	const probe = element.ownerDocument.createElement("div");
+	probe.setAttribute("popover", "hint");
+	return probe.popover === "hint";
+}
+function supportsAnchorPositioning(element) {
+	const css = element.ownerDocument.defaultView?.CSS;
+	if (!css || typeof css.supports !== "function") return false;
+	return css.supports("anchor-name: --a11y-tooltip-anchor") && css.supports("position-anchor: --a11y-tooltip-anchor") && css.supports("position-area: top span-all") && css.supports("align-self: anchor-center") && css.supports("position-try-fallbacks: flip-block");
+}
+function isPopoverOpen(element) {
+	try {
+		return element.matches(":popover-open");
+	} catch {
+		return false;
+	}
+}
+function isOwnLifecycleEvent(event, instance) {
+	return event.detail?.instance === instance;
+}
+/**
+* Progressively renders an A11y Tooltip as a native `popover="hint"`
+* when the browser supports the hint state.
+*
+* A11yTooltip remains authoritative for opening. Native platform closes
+* (light dismiss, Escape/close requests, or another hint taking precedence)
+* are synchronized back into the core with the "platform" close reason.
+*
+* The addon also reuses the package's CSS Anchor Positioning setup so the
+* top-layer tooltip remains attached to its trigger.
+*/
+function createHintPopoverAddon() {
+	return Object.freeze({
+		name: "hint-popover",
+		setup(instance) {
+			const { root, tooltip, trigger } = instance;
+			if (!supportsHintPopover(tooltip) || !supportsAnchorPositioning(tooltip)) return;
+			const originalPopover = tooltip.getAttribute("popover");
+			const originalRootAttribute = root.getAttribute(ROOT_ATTRIBUTE);
+			const cleanupAnchorPositioning = setupAnchorPositioning(instance);
+			let cleaningUp = false;
+			const handleBeforeToggle = (event) => {
+				if (event.newState === "open" && !instance.isOpen) event.preventDefault();
+			};
+			const handleToggle = (event) => {
+				if (cleaningUp) return;
+				if (event.newState === "closed" && instance.isOpen) instance.close("platform");
+			};
+			const handleCoreOpen = (event) => {
+				if (!isOwnLifecycleEvent(event, instance) || isPopoverOpen(tooltip)) return;
+				try {
+					tooltip.showPopover({ source: trigger });
+				} catch {
+					instance.close("platform");
+				}
+			};
+			const handleCoreClose = (event) => {
+				if (!isOwnLifecycleEvent(event, instance) || !isPopoverOpen(tooltip)) return;
+				try {
+					tooltip.hidePopover();
+				} catch {}
+			};
+			tooltip.addEventListener("beforetoggle", handleBeforeToggle);
+			tooltip.addEventListener("toggle", handleToggle);
+			root.addEventListener(tooltipEvents.open, handleCoreOpen);
+			root.addEventListener(tooltipEvents.close, handleCoreClose);
+			root.setAttribute(ROOT_ATTRIBUTE, "");
+			tooltip.setAttribute("popover", "hint");
 			return () => {
-				if (originalRootAttribute === null) instance.root.removeAttribute(ROOT_ATTRIBUTE);
-				else instance.root.setAttribute(ROOT_ATTRIBUTE, originalRootAttribute);
-				restoreInlineStyle(instance.trigger, "anchor-name", originalAnchorName);
-				restoreInlineStyle(instance.tooltip, "position-anchor", originalPositionAnchor);
-				restoreInlineStyle(instance.tooltip, "position-try-fallbacks", originalPositionTryFallbacks);
+				cleaningUp = true;
+				root.removeEventListener(tooltipEvents.open, handleCoreOpen);
+				root.removeEventListener(tooltipEvents.close, handleCoreClose);
+				tooltip.removeEventListener("beforetoggle", handleBeforeToggle);
+				tooltip.removeEventListener("toggle", handleToggle);
+				if (isPopoverOpen(tooltip)) try {
+					tooltip.hidePopover();
+				} catch {}
+				if (originalPopover === null) tooltip.removeAttribute("popover");
+				else tooltip.setAttribute("popover", originalPopover);
+				if (originalRootAttribute === null) root.removeAttribute(ROOT_ATTRIBUTE);
+				else root.setAttribute(ROOT_ATTRIBUTE, originalRootAttribute);
+				cleanupAnchorPositioning();
 			};
 		}
 	});
@@ -209,6 +337,6 @@ function createSingleOpenAddon() {
 	});
 }
 //#endregion
-export { ANCHOR_POSITIONING_FALLBACKS, OVERFLOW_AXES, createAnchorPositioningAddon, createOverflowOnlyAddon, createSingleOpenAddon, defineTooltipAddon };
+export { ANCHOR_POSITIONING_FALLBACKS, OVERFLOW_AXES, createAnchorPositioningAddon, createHintPopoverAddon, createOverflowOnlyAddon, createSingleOpenAddon, defineTooltipAddon };
 
 //# sourceMappingURL=index.js.map
