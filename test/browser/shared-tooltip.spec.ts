@@ -755,21 +755,60 @@ test("docs motion demo visibly travels between differently sized labels", async 
 
   await buttons.nth(0).focus();
   const start = await tooltip.boundingBox();
+
   await buttons.nth(1).focus();
-  await expect.poll(() => tooltip.evaluate((element) => element.getAnimations().length)).toBe(1);
-  const early = await tooltip.boundingBox();
-  await page.waitForTimeout(120);
+  await expect.poll(() =>
+    tooltip.evaluate((element) =>
+      element.getAnimations().length
+    )
+  ).toBe(1);
+
+  await tooltip.evaluate((element) => {
+    const animation = element.getAnimations()[0];
+    const effect = animation?.effect;
+
+    if (
+      !animation ||
+      !(effect instanceof KeyframeEffect)
+    ) {
+      throw new Error("Retarget animation is missing.");
+    }
+
+    const duration = Number(
+      effect.getTiming().duration
+    );
+
+    animation.pause();
+    animation.currentTime = duration / 2;
+  });
+
   const middle = await tooltip.boundingBox();
-  await expect.poll(() => tooltip.evaluate((element) => element.getAnimations().length)).toBe(0);
+
+  await tooltip.evaluate((element) => {
+    element.getAnimations()[0]?.finish();
+  });
+
+  await expect.poll(() =>
+    tooltip.evaluate((element) =>
+      element.getAnimations().length
+    )
+  ).toBe(0);
+
   const end = await tooltip.boundingBox();
 
-  if (!start || !early || !middle || !end) throw new Error("Tooltip was not measurable");
+  if (!start || !middle || !end) {
+    throw new Error("Tooltip was not measurable");
+  }
+
   expect(Math.abs(start.width - end.width)).toBeLessThan(1);
-  expect(Math.abs(early.width - end.width)).toBeLessThan(1);
   expect(Math.abs(middle.width - end.width)).toBeLessThan(1);
-  expect(early.x).toBeLessThan(end.x - 10);
-  expect(middle.x).toBeGreaterThan(early.x);
-  expect(middle.x).toBeLessThan(end.x);
+
+  const low = Math.min(start.x, end.x);
+  const high = Math.max(start.x, end.x);
+
+  expect(Math.abs(end.x - start.x)).toBeGreaterThan(20);
+  expect(middle.x).toBeGreaterThan(low + 5);
+  expect(middle.x).toBeLessThan(high - 5);
 });
 
 test("scrolled docs keeps the tooltip in place until retarget motion begins", async ({ page }) => {
@@ -841,7 +880,9 @@ test("scrolled docs retarget stays on screen after every paint", async ({ page }
   expect(samples.scrollY).toBeGreaterThan(500);
   for (const frame of samples.frames) {
     expect(frame.hidden).toBe(false);
-    expect(Math.abs(frame.y - samples.origin.y)).toBeLessThan(1);
+    // Fixed/anchored layout can differ by slightly more than one CSS pixel
+    // across engines due to subpixel rounding at the page scroll offset.
+    expect(Math.abs(frame.y - samples.origin.y)).toBeLessThan(2);
     expect(frame.x).toBeGreaterThanOrEqual(samples.origin.x - 1);
     expect(frame.x).toBeLessThan(samples.origin.x + 300);
   }
