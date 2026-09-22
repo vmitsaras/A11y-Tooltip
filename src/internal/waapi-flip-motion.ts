@@ -33,6 +33,30 @@ function positionDelta(
   };
 }
 
+function anchoredLayoutPosition(
+  tooltip: HTMLElement,
+  view: Window
+): { left: number; top: number } | null {
+  const style = view.getComputedStyle(tooltip);
+  const positionAnchor =
+    style.getPropertyValue("position-anchor");
+
+  if (
+    style.position !== "fixed" ||
+    tooltip.offsetParent !== null ||
+    !positionAnchor ||
+    positionAnchor === "auto" ||
+    (style.translate !== "none" && Boolean(style.translate))
+  ) {
+    return null;
+  }
+
+  return {
+    left: tooltip.offsetLeft,
+    top: tooltip.offsetTop
+  };
+}
+
 /**
  * Creates a zero-dependency WAAPI FLIP controller for shared-tooltip
  * retargeting.
@@ -115,18 +139,16 @@ export function createWaapiFlipMotionController(
       const holdAtOrigin = (): void => {
         releaseHold();
         const current = tooltip.getBoundingClientRect();
-        // Anchor reassignment can leave getBoundingClientRect() with the old
-        // anchor's scroll adjustment until paint. Fixed-position layout offsets
-        // already describe the new viewport position; using the stale rect here
-        // would apply the page's scroll distance as a visible translation.
-        const style = view.getComputedStyle(tooltip);
-        const useLayoutOffsets = style.position === "fixed" &&
-          tooltip.offsetParent === null &&
-          Boolean(style.getPropertyValue("position-anchor")) &&
-          style.getPropertyValue("position-anchor") !== "auto" &&
-          (style.translate === "none" || !style.translate);
-        const x = before.left - (useLayoutOffsets ? tooltip.offsetLeft : current.left);
-        const y = before.top - (useLayoutOffsets ? tooltip.offsetTop : current.top);
+        // Anchor reassignment can leave getBoundingClientRect() with stale or
+        // scroll-adjusted coordinates until paint. Fixed-position layout
+        // offsets describe the new anchored viewport position more reliably in
+        // Chromium and WebKit, while the rendered rect remains the fallback.
+        const layout =
+          anchoredLayoutPosition(tooltip, view);
+        const x =
+          before.left - (layout?.left ?? current.left);
+        const y =
+          before.top - (layout?.top ?? current.top);
         tooltip.style.setProperty("translate", `${x}px ${y}px`);
         restoreTranslate = () => {
           if (previousTranslate) {
@@ -154,7 +176,18 @@ export function createWaapiFlipMotionController(
           }
 
           const after = tooltip.getBoundingClientRect();
-          const { x, y } = positionDelta(before, after);
+          const layout =
+            anchoredLayoutPosition(tooltip, view);
+          const destination = layout
+            ? new DOMRect(
+                layout.left,
+                layout.top,
+                after.width,
+                after.height
+              )
+            : after;
+          const { x, y } =
+            positionDelta(before, destination);
 
           if (Math.abs(x) < 0.5 && Math.abs(y) < 0.5) {
             return;
