@@ -94,6 +94,32 @@ Diagnostics are intended to catch common integration mistakes earlier while the
 core tooltip and manual accessibility verification remain the source of truth
 for behavior.
 
+## Native hint popover addon
+
+`createHintPopoverAddon()` changes the rendering layer, not the accessibility
+pattern.
+
+- Tooltip content remains non-interactive `role="tooltip"` content.
+- The trigger remains associated through `aria-describedby`.
+- Focus remains on the trigger; the addon does not use `popovertarget`.
+- The addon does not add implicit `aria-expanded` or `aria-details`
+  relationships.
+- Native platform dismissals synchronize to the core with the
+  `"platform"` close reason and cannot be canceled by `before-close`.
+- Escape-driven core dismissal is likewise noncancelable so required
+  dismissal cannot leave native/core state split.
+- The bridge activates only when both `popover="hint"` and the required CSS
+  Anchor Positioning features are available.
+- Unsupported browsers keep the ordinary tooltip implementation.
+- No backdrop, focus trapping, DOM reparenting, storage, analytics, or network
+  behavior is added.
+
+Real-browser automation verifies top-layer state synchronization, hint-stack
+behavior, coexistence with an open `auto` popover, clipping escape, and
+teardown. Automated tests still cannot prove assistive-technology speech
+output, so manual VoiceOver/NVDA/mobile checks remain required before treating
+the experimental bridge as fully verified.
+
 ## Manual release checks
 
 | Check | Environment | Status |
